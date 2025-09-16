@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Penal - Final del Mundo</title>
+    <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+    <canvas id="webgl"></canvas>
+    
+    <div id="ui-container">
+        <!-- Pantalla de INTRO -->
+        <div id="intro-overlay" class="overlay active">
+            <h1>Final del Mundo</h1>
+            <p>Minuto 120. El destino en tus pies.</p>
+            <button id="start-button">Empezar</button>
+        </div>
+
+        <!-- HUD del juego -->
+        <div id="hud" class="hidden">
+            <div id="power-bar-container">
+                <div id="power-bar"></div>
+            </div>
+            <div id="reticle">+</div>
+            <div class="controls-info">
+                <p>WASD: Moverse | MOUSE: Apuntar | ESPACIO: Cargar fuerza</p>
+            </div>
+        </div>
+        
+        <!-- Pantalla de EPILOGUE -->
+        <div id="epilogue-overlay" class="overlay hidden">
+            <h2 id="epilogue-title"></h2>
+            <p id="epilogue-message">Un penal no es solo un disparo, es una historia.</p>
+            <button id="retry-button">Reintentar</button>
+        </div>
+
+        <!-- Controles de Debug/Opciones -->
+        <div id="options-panel">
+             <label for="pressure-slider">Presión:</label>
+             <input type="range" id="pressure-slider" min="0" max="1" step="0.1" value="0.3">
+             <button id="view-toggle-button">Vista Fija</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
