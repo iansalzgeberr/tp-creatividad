@@ -22,8 +22,10 @@ class IntroState extends State {
 
 class PrePenalState extends State {
     enter() {
+        console.log('Entering PRE_PENAL state');
         this.manager.audio.fade('heartbeat', 0.5, 2);
         this.manager.input.setMovementEnabled(true);
+        console.log('Movement enabled:', this.manager.input.movementEnabled);
     }
     update(deltaTime) {
         const moveSpeed = this.manager.input.keys.shift ? 6.0 : 3.0;
@@ -75,7 +77,7 @@ class KickState extends State {
 
     enter(params) {
         this.hasCheckedOutcome = false;
-        this.manager.audio.play('whistle');
+        // this.manager.audio.play('whistle'); // Comentado - archivo no existe
         this.manager.audio.fade('heartbeat', 0, 0.5);
         this.manager.ui.showHUD(false);
         this.manager.input.power = 0; 
@@ -100,6 +102,12 @@ class KickState extends State {
         this.manager.ball.position.add(this.manager.ball.userData.velocity.clone().multiplyScalar(deltaTime));
         this.manager.ball.userData.velocity.y -= GRAVITY * deltaTime;
         
+        // Evitar que la pelota traspase el suelo
+        if (this.manager.ball.position.y < 0.1) {
+            this.manager.ball.position.y = 0.1;
+            this.manager.ball.userData.velocity.y = 0; // Detener movimiento vertical
+        }
+        
         const GOAL_LINE_Z = -15; 
         if (this.manager.ball.position.z <= GOAL_LINE_Z && !this.hasCheckedOutcome) {
             this.checkOutcome();
@@ -110,10 +118,10 @@ class KickState extends State {
         this.hasCheckedOutcome = true;
         const ballPos = this.manager.ball.position;
 
-        // --- CAMBIOS CLAVE AQUÍ: Agrandamos la portería numérica ---
-        // Estos nuevos valores coinciden mejor con el tamaño del modelo 3D escalado.
-        const goalWidth = 7.0; 
-        const goalHeight = 3.5;
+        // --- DIMENSIONES CORREGIDAS: Ajustadas al modelo 3D escalado (3x) ---
+        // Aumentando considerablemente las dimensiones para que coincidan con el modelo visual
+        const goalWidth = 20.0;  // Ancho de la portería (aún más generoso)
+        const goalHeight = 8.0;  // Alto de la portería (aún más generoso)
 
         if (this.manager.goalkeeperAI.checkSave(ballPos)) {
             this.manager.stateMachine.changeState('OUTCOME', { result: 'save' });
@@ -135,15 +143,15 @@ class OutcomeState extends State {
     enter(params) {
         switch(params.result) {
             case 'goal':
-                this.manager.audio.play('goal');
-                this.manager.audio.fade('crowd', 1, 1);
+                // this.manager.audio.play('goal'); // Comentado - archivo no existe
+                this.manager.audio.setCrowdVolume(0.8); // Aumentar volumen de multitud para celebrar
                 this.manager.toStadiumView();
                 setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡GOOOOL!" }), 2000);
                 break;
             case 'save':
             case 'post':
-                this.manager.audio.play('fail');
-                this.manager.audio.fade('crowd', 0.2, 1);
+                // this.manager.audio.play('fail'); // Comentado - archivo no existe
+                this.manager.audio.setCrowdVolume(0.2); // Bajar volumen de multitud por decepción
                 gsap.to(this.manager.ball.position, { 
                     x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
                     z: this.manager.ball.position.z - 1, duration: 1

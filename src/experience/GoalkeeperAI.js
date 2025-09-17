@@ -10,8 +10,9 @@ export default class GoalkeeperAI {
 
         // --- CAMBIO CLAVE: Zonas de atajada predefinidas ---
         // Estas son las "decisiones" que el arquero puede tomar.
-        const goalWidth = 4.3;
-        const goalHeight = 2.44;
+        // Ajustadas para que coincidan con las dimensiones de detección de gol en States.js
+        const goalWidth = 10.0;  // La mitad de 20.0 (goalWidth en States.js)
+        const goalHeight = 4.0;  // La mitad de 8.0 (goalHeight en States.js)
         this.diveZones = [
             new THREE.Vector3(-goalWidth, goalHeight, this.initialPos.z), // Arriba izquierda
             new THREE.Vector3(0, goalHeight, this.initialPos.z),          // Arriba centro
@@ -82,10 +83,17 @@ export default class GoalkeeperAI {
     checkSave(ballPosition) {
         if (this.state !== 'DIVE') return false;
         
-        const saveVolume = new THREE.Box3().setFromObject(this.model);
-        // --- CAMBIO SUTIL: Reducimos un poco el hitbox para que sea más justo ---
-        saveVolume.expandByScalar(0.0);
+        // Crear un hitbox más preciso basado en la posición actual del arquero
+        const keeperPos = this.model.position;
+        const saveRadius = 1.2; // Radio de alcance del arquero
         
-        return saveVolume.containsPoint(ballPosition);
+        // Verificar si la pelota está dentro del alcance del arquero
+        const distance = new THREE.Vector3(
+            ballPosition.x - keeperPos.x,
+            ballPosition.y - keeperPos.y,
+            ballPosition.z - keeperPos.z
+        ).length();
+        
+        return distance <= saveRadius;
     }
 }

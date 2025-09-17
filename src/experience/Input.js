@@ -24,8 +24,8 @@ export default class InputManager extends EventEmitter {
     }
 
     onKey(code, isPressed) {
-        // Para depuración, puedes descomentar la siguiente línea:
-        // console.log(`Key Event -> Code: ${code}, Pressed: ${isPressed}`);
+        // Para depuración, descomenta la siguiente línea:
+        console.log(`Key Event -> Code: ${code}, Pressed: ${isPressed}, Movement Enabled: ${this.movementEnabled}`);
 
         switch(code) {
             case 'KeyW':

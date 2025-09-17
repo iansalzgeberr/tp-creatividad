@@ -121,13 +121,17 @@ export default class SceneManager {
     bindEventListeners() {
         // --- CAMBIO CLAVE AQUÍ: Se eliminó el parámetro (e) para que coincida con el emit() de UI.js ---
         this.ui.on('start', () => {
-            this.audio.init(); 
-            this.audio.play('crowd', true);
+            this.audio.init(); // Inicializar audio con interacción del usuario
+            setTimeout(() => {
+                this.audio.ensureCrowdPlaying(); // Iniciar multitud después de un pequeño delay
+            }, 500);
             this.controls.lock();
             this.resetScene(); 
         });
         
         this.ui.on('retry', () => {
+            this.audio.ensureCrowdPlaying(); // Asegurar que la multitud esté sonando
+            this.audio.setCrowdVolume(0.3); // Restaurar volumen base
             this.resetScene();
             this.controls.lock();
         });
