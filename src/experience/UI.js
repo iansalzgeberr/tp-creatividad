@@ -12,7 +12,9 @@ export default class UIManager extends EventEmitter {
         // --- CAMBIO CLAVE AQUÍ ---
         // Añadimos el evento 'e' para poder acceder al botón que fue clickeado.
         document.getElementById('start-button').addEventListener('click', (e) => {
+            console.log('🎮 START BUTTON CLICKED - About to emit start event');
             this.emit('start');
+            console.log('✅ Start event emitted');
             e.target.blur(); // Le quitamos el foco al botón para que no intercepte la barra espaciadora.
         });
         

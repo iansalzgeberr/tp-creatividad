@@ -49,6 +49,11 @@ export default class InputManager extends EventEmitter {
             case 'ShiftLeft':
                 this.keys.shift = isPressed;
                 break;
+            case 'KeyT': // Tecla T para probar audio
+                if (isPressed) {
+                    this.emit('test-audio');
+                }
+                break;
             case 'Space':
                 this.handleSpace(isPressed);
                 break;

@@ -77,8 +77,11 @@ class KickState extends State {
 
     enter(params) {
         this.hasCheckedOutcome = false;
-        // this.manager.audio.play('whistle'); // Comentado - archivo no existe
-        this.manager.audio.fade('heartbeat', 0, 0.5);
+        
+        // ¡MONTIEL CUANDO SE PATEE!
+        console.log('🎙️ About to play Montiel...');
+        this.manager.audio.playMontiel();
+        
         this.manager.ui.showHUD(false);
         this.manager.input.power = 0; 
 
@@ -144,14 +147,19 @@ class OutcomeState extends State {
         switch(params.result) {
             case 'goal':
                 // this.manager.audio.play('goal'); // Comentado - archivo no existe
-                this.manager.audio.setCrowdVolume(0.8); // Aumentar volumen de multitud para celebrar
                 this.manager.toStadiumView();
                 setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡GOOOOL!" }), 2000);
                 break;
             case 'save':
+                // this.manager.audio.play('fail'); // Comentado - archivo no existe
+                gsap.to(this.manager.ball.position, { 
+                    x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
+                    z: this.manager.ball.position.z - 1, duration: 1
+                });
+                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡Atajada!" }), 2000);
+                break;
             case 'post':
                 // this.manager.audio.play('fail'); // Comentado - archivo no existe
-                this.manager.audio.setCrowdVolume(0.2); // Bajar volumen de multitud por decepción
                 gsap.to(this.manager.ball.position, { 
                     x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
                     z: this.manager.ball.position.z - 1, duration: 1

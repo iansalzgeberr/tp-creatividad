@@ -43,11 +43,21 @@ export default class SceneManager {
     }
 
     init() {
+        console.log('🚀 SceneManager init() called');
         this.setupScene();
         this.bindEventListeners();
         
+        // Inicializar audio inmediatamente
+        console.log('🎵 Initializing audio immediately...');
+        this.audio.init(this.camera);
+        
         this.assets.on('loaded', () => {
             this.buildWorld();
+            console.log('✅ Assets loaded, checking montiel audio...');
+            // Verificar que Montiel esté listo
+            setTimeout(() => {
+                this.audio.ensureMontielReady();
+            }, 500);
             this.stateMachine.changeState('INTRO');
         });
     }
@@ -120,18 +130,26 @@ export default class SceneManager {
 
     bindEventListeners() {
         // --- CAMBIO CLAVE AQUÍ: Se eliminó el parámetro (e) para que coincida con el emit() de UI.js ---
+        console.log('🔗 Binding event listeners...');
         this.ui.on('start', () => {
-            this.audio.init(); // Inicializar audio con interacción del usuario
+            console.log('🎮 Start button pressed - initializing audio');
+            console.log('Camera object:', this.camera);
+            this.audio.init(this.camera); // Inicializar audio con la cámara
+            
+            // Activar contexto de audio después de la interacción del usuario
+            console.log('🎵 Activating audio context...');
+            this.audio.activateAudioContext();
+            
+            console.log('Audio init completed, setting timeout for crowd...');
             setTimeout(() => {
-                this.audio.ensureCrowdPlaying(); // Iniciar multitud después de un pequeño delay
-            }, 500);
+                console.log('⏰ Timeout triggered - trying to ensure crowd playing');
+                this.audio.ensureMontielReady();
+            }, 1000); // Aumentar el delay para dar más tiempo a cargar el audio
             this.controls.lock();
             this.resetScene(); 
         });
         
         this.ui.on('retry', () => {
-            this.audio.ensureCrowdPlaying(); // Asegurar que la multitud esté sonando
-            this.audio.setCrowdVolume(0.3); // Restaurar volumen base
             this.resetScene();
             this.controls.lock();
         });
@@ -140,6 +158,21 @@ export default class SceneManager {
             if(this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
                 this.stateMachine.changeState('KICK', { power });
             }
+        });
+
+        this.input.on('test-audio', () => {
+            console.log('Testing audio system...');
+            console.log('Audio status:', this.audio.getAudioStatus());
+            
+            // ¡ACTIVAR AUDIO CONTEXT AHORA!
+            console.log('🔥 ACTIVATING AUDIO CONTEXT WITH T KEY...');
+            this.audio.activateAudioContext();
+            
+            // Probar Montiel inmediatamente
+            setTimeout(() => {
+                console.log('🎙️ Testing Montiel playback...');
+                this.audio.playMontiel();
+            }, 500);
         });
 
         this.controls.addEventListener('lock', () => this.ui.showHUD(true));

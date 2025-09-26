@@ -6,7 +6,7 @@ export default class GoalkeeperAI {
         this.model = model;
         this.initialPos = model.position.clone();
         this.state = 'IDLE'; // IDLE, ANTICIPATE, DIVE
-        this.reactionTime = 0.25;
+        this.reactionTime = 0.2; // Tiempo de reacción balanceado
 
         // --- CAMBIO CLAVE: Zonas de atajada predefinidas ---
         // Estas son las "decisiones" que el arquero puede tomar.
@@ -45,16 +45,31 @@ export default class GoalkeeperAI {
     }
 
     /**
-     * @param {THREE.Vector3} targetPoint - Ya no usamos este parámetro. El arquero adivina.
+     * @param {THREE.Vector3} targetPoint - Punto donde se predice que llegará la pelota
      */
     reactToShot(targetPoint) {
         this.state = 'ANTICIPATE';
         gsap.killTweensOf(this.model.position); 
 
-        // --- LÓGICA COMPLETAMENTE NUEVA ---
-        // El arquero elige aleatoriamente una zona a la que tirarse, ¡como en la vida real!
-        const randomIndex = Math.floor(Math.random() * this.diveZones.length);
-        const diveTarget = this.diveZones[randomIndex];
+        // Mejorar la lógica del arquero: combinar intuición con predicción
+        let diveTarget;
+        
+        // 40% de probabilidad de ir hacia el targetPoint, 60% de adivinar mal
+        if (Math.random() < 0.4 && targetPoint) {
+            // Ir hacia donde realmente va la pelota (con más error)
+            const errorX = (Math.random() - 0.5) * 4; // Error de ±2 unidades (más error)
+            const errorY = (Math.random() - 0.5) * 2; // Error de ±1 unidad (más error)
+            
+            diveTarget = new THREE.Vector3(
+                Math.max(-10, Math.min(10, targetPoint.x + errorX)), // Limitar al ancho del arco
+                Math.max(0.5, Math.min(4, targetPoint.y + errorY)), // Limitar a la altura del arco
+                this.initialPos.z
+            );
+        } else {
+            // Adivinar mal: elegir una zona aleatoria
+            const randomIndex = Math.floor(Math.random() * this.diveZones.length);
+            diveTarget = this.diveZones[randomIndex];
+        }
         
         setTimeout(() => this.dive(diveTarget), this.reactionTime * 1000);
     }
@@ -62,20 +77,21 @@ export default class GoalkeeperAI {
     dive(target) {
         this.state = 'DIVE';
         
+        // Movimiento más rápido y agresivo del arquero
         gsap.to(this.model.position, {
             x: target.x,
             y: target.y,
-            duration: 0.4,
-            ease: 'power2.out'
+            duration: 0.3, // Más rápido
+            ease: 'power3.out' // Easing más agresivo
         });
         
-        // No te tires si te quedas en el centro
-        if (target.x !== 0 || target.y > 0.5) {
+        // Rotación más dramática cuando se tira a los lados
+        if (Math.abs(target.x) > 1 || target.y > 1) {
             const direction = target.x > this.initialPos.x ? -1 : 1;
             gsap.to(this.model.rotation, {
-                z: direction * Math.PI / 4, 
-                duration: 0.35,
-                ease: 'power2.out'
+                z: direction * Math.PI / 3, // Rotación más dramática
+                duration: 0.25,
+                ease: 'power3.out'
             });
         }
     }
@@ -83,9 +99,9 @@ export default class GoalkeeperAI {
     checkSave(ballPosition) {
         if (this.state !== 'DIVE') return false;
         
-        // Crear un hitbox más preciso basado en la posición actual del arquero
+        // Crear un hitbox más generoso basado en la posición actual del arquero
         const keeperPos = this.model.position;
-        const saveRadius = 1.2; // Radio de alcance del arquero
+        const saveRadius = 2.0; // Radio de alcance del arquero (reducido un poco)
         
         // Verificar si la pelota está dentro del alcance del arquero
         const distance = new THREE.Vector3(
@@ -94,6 +110,9 @@ export default class GoalkeeperAI {
             ballPosition.z - keeperPos.z
         ).length();
         
-        return distance <= saveRadius;
+        // Factor de suerte más realista para hacer las atajadas menos frecuentes
+        const luckFactor = Math.random() < 0.5; // 50% de probabilidad de atajar si está en rango
+        
+        return distance <= saveRadius && luckFactor;
     }
 }
