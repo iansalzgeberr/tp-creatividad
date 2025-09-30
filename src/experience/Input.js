@@ -11,12 +11,52 @@ export default class InputManager extends EventEmitter {
         this.power = 0;
         this.charging = false;
         this.movementEnabled = false;
+        
+        // Control por gestos
+        this.gestureMode = false;
+        this.gestureAimTarget = { x: 0.5, y: 0.5 };
 
-        // --- CAMBIO CRUCIAL AQUÍ ---
-        // Cambiamos 'window' por 'document' para asegurar que los eventos se capturen
-        // incluso cuando el puntero del mouse está bloqueado.
         document.addEventListener('keydown', (e) => this.onKey(e.code, true));
         document.addEventListener('keyup', (e) => this.onKey(e.code, false));
+    }
+    
+    enableGestureMode() {
+        this.gestureMode = true;
+        console.log('🖐️ Gesture mode enabled');
+    }
+    
+    disableGestureMode() {
+        this.gestureMode = false;
+        console.log('⌨️ Keyboard mode enabled');
+    }
+    
+    isGestureMode() {
+        return this.gestureMode;
+    }
+    
+    updateGestureAim(target) {
+        // target es {x, y} normalizado (0-1)
+        // Convertir a coordenadas útiles para la cámara
+        this.gestureAimTarget = target;
+        this.emit('gesture-aim', target);
+    }
+    
+    startGestureCharge() {
+        if (!this.charging) {
+            this.charging = true;
+            this.power = 0;
+            gsap.to(this, { power: 1, duration: 1.5, ease: 'power1.in' });
+            this.emit('charge-start');
+        }
+    }
+    
+    gestureShoot() {
+        if (this.charging) {
+            this.charging = false;
+            gsap.killTweensOf(this);
+            this.emit('kick', this.power);
+            this.power = 0;
+        }
     }
     
     setMovementEnabled(enabled) {
@@ -24,7 +64,6 @@ export default class InputManager extends EventEmitter {
     }
 
     onKey(code, isPressed) {
-        // Para depuración, descomenta la siguiente línea:
         console.log(`Key Event -> Code: ${code}, Pressed: ${isPressed}, Movement Enabled: ${this.movementEnabled}`);
 
         switch(code) {
@@ -34,7 +73,6 @@ export default class InputManager extends EventEmitter {
                 break;
             case 'KeyA':
             case 'ArrowLeft':
-                // La 'A' y 'D' deben funcionar tanto para moverse como para perfilarse
                 this.keys.a = isPressed;
                 break;
             case 'KeyS':
@@ -43,34 +81,37 @@ export default class InputManager extends EventEmitter {
                 break;
             case 'KeyD':
             case 'ArrowRight':
-                // La 'A' y 'D' deben funcionar tanto para moverse como para perfilarse
                 this.keys.d = isPressed;
                 break;
             case 'ShiftLeft':
                 this.keys.shift = isPressed;
                 break;
-            case 'KeyT': // Tecla T para probar audio
+            case 'KeyT':
                 if (isPressed) {
                     this.emit('test-audio');
                 }
                 break;
+            case 'KeyG': // Toggle gesture mode
+                if (isPressed) {
+                    this.emit('toggle-gesture');
+                }
+                break;
             case 'Space':
-                this.handleSpace(isPressed);
+                if (!this.gestureMode) { // Solo si no estamos en modo gesture
+                    this.handleSpace(isPressed);
+                }
                 break;
         }
     }
 
     handleSpace(isPressed) {
         if (isPressed && !this.charging) {
-            // Iniciar carga solo si estamos en el estado de apuntado (AIMING)
-            // Esto lo controlará la máquina de estados, aquí solo registramos la pulsación.
             this.charging = true;
             this.power = 0;
             gsap.to(this, { power: 1, duration: 1.5, ease: 'power1.in' });
         } else if (!isPressed && this.charging) {
-            // Soltar y patear
             this.charging = false;
-            gsap.killTweensOf(this); // Detiene la animación de carga
+            gsap.killTweensOf(this);
             this.emit('kick', this.power);
             this.power = 0;
         }
