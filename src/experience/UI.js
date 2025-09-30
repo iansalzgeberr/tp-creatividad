@@ -9,21 +9,71 @@ export default class UIManager extends EventEmitter {
         this.powerBar = document.getElementById('power-bar');
         this.pressureSlider = document.getElementById('pressure-slider');
         
-        // --- CAMBIO CLAVE AQUÍ ---
-        // Añadimos el evento 'e' para poder acceder al botón que fue clickeado.
         document.getElementById('start-button').addEventListener('click', (e) => {
-            console.log('🎮 START BUTTON CLICKED - About to emit start event');
+            console.log('Start button clicked');
             this.emit('start');
-            console.log('✅ Start event emitted');
-            e.target.blur(); // Le quitamos el foco al botón para que no intercepte la barra espaciadora.
+            e.target.blur();
         });
         
         document.getElementById('retry-button').addEventListener('click', (e) => {
             this.emit('retry');
-            e.target.blur(); // Hacemos lo mismo para el botón de reintentar.
+            e.target.blur();
         });
         
-        // TODO: Lógica para el botón 'view-toggle-button'
+        // Crear botón para activar/desactivar control por gestos
+        this.createGestureToggle();
+    }
+
+    createGestureToggle() {
+        const gestureButton = document.createElement('button');
+        gestureButton.id = 'gesture-toggle-button';
+        gestureButton.textContent = 'Activar Control por Gestos';
+        gestureButton.style.display = 'none'; // Oculto hasta que el sistema esté listo
+        
+        gestureButton.addEventListener('click', () => {
+            this.emit('toggle-gesture');
+        });
+        
+        const optionsPanel = document.getElementById('options-panel');
+        optionsPanel.appendChild(gestureButton);
+        
+        // Agregar indicador de estado
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'gesture-status-indicator';
+        statusDiv.style.cssText = `
+            margin-top: 10px;
+            padding: 5px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+        `;
+        statusDiv.textContent = 'Control: Teclado';
+        optionsPanel.appendChild(statusDiv);
+        
+        this.gestureButton = gestureButton;
+        this.gestureStatusDiv = statusDiv;
+    }
+
+    showGestureButton() {
+        if (this.gestureButton) {
+            this.gestureButton.style.display = 'block';
+        }
+    }
+
+    updateGestureStatus(text) {
+        if (this.gestureStatusDiv) {
+            this.gestureStatusDiv.textContent = text;
+        }
+        
+        // Actualizar texto del botón
+        if (this.gestureButton) {
+            if (text.includes('ACTIVADO')) {
+                this.gestureButton.textContent = 'Desactivar Gestos';
+            } else {
+                this.gestureButton.textContent = 'Activar Control por Gestos';
+            }
+        }
     }
 
     showIntro(visible) {

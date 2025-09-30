@@ -141,28 +141,6 @@ dist-ssr
 </html>
 </file>
 
-<file path="package.json">
-{
-  "name": "final-penalty-kick",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "devDependencies": {
-    "vite": "^7.1.2"
-  },
-  "dependencies": {
-    "eventemitter3": "^5.0.1",
-    "gsap": "^3.13.0",
-    "three": "^0.180.0"
-  }
-}
-</file>
-
 <file path="public/vite.svg">
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
 </file>
@@ -292,439 +270,6 @@ export default class Assets extends EventEmitter {
 }
 </file>
 
-<file path="src/experience/Audio.js">
-import * as THREE from 'three';
-import gsap from 'gsap';
-
-export default class AudioManager {
-    constructor() {
-        this.listener = null;
-        this.sounds = {};
-        this.audioSources = {
-            crowd: '/audio/crowd.mp3',
-            heartbeat: '/audio/heartbeat.mp3',
-            goal: '/audio/goal.mp3',
-            fail: '/audio/fail.mp3',
-            whistle: '/audio/whistle.mp3',
-        };
-    }
-
-    init() {
-        // La creación del AudioContext debe estar tras un gesto del usuario
-        this.listener = new THREE.AudioListener();
-        const audioLoader = new THREE.AudioLoader();
-
-        Object.entries(this.audioSources).forEach(([name, path]) => {
-            const sound = new THREE.Audio(this.listener);
-            this.sounds[name] = sound;
-            audioLoader.load(path, (buffer) => {
-                sound.setBuffer(buffer);
-                sound.setVolume(0.5);
-            });
-        });
-    }
-
-    play(name, loop = false) {
-        const sound = this.sounds[name];
-        if (sound && !sound.isPlaying) {
-            sound.setLoop(loop);
-            sound.play();
-        }
-    }
-
-    stop(name) {
-        const sound = this.sounds[name];
-        if (sound && sound.isPlaying) {
-            sound.stop();
-        }
-    }
-
-    fade(name, targetVolume, duration) {
-        const sound = this.sounds[name];
-        if (sound) {
-            gsap.to(sound, { volume: targetVolume, duration: duration });
-        }
-    }
-}
-</file>
-
-<file path="src/experience/GoalkeeperAI.js">
-import * as THREE from 'three';
-import gsap from 'gsap';
-
-export default class GoalkeeperAI {
-    constructor(model) {
-        this.model = model;
-        this.initialPos = model.position.clone();
-        this.state = 'IDLE'; // IDLE, ANTICIPATE, DIVE
-        this.reactionTime = 0.25;
-
-        // --- CAMBIO CLAVE: Zonas de atajada predefinidas ---
-        // Estas son las "decisiones" que el arquero puede tomar.
-        const goalWidth = 2.3;
-        const goalHeight = 2.0;
-        this.diveZones = [
-            new THREE.Vector3(-goalWidth, goalHeight, this.initialPos.z), // Arriba izquierda
-            new THREE.Vector3(0, goalHeight, this.initialPos.z),          // Arriba centro
-            new THREE.Vector3(goalWidth, goalHeight, this.initialPos.z),  // Arriba derecha
-            new THREE.Vector3(-goalWidth, 0.5, this.initialPos.z),       // Abajo izquierda
-            new THREE.Vector3(goalWidth, 0.5, this.initialPos.z),        // Abajo derecha
-            new THREE.Vector3(0, 0.5, this.initialPos.z),                // Abajo centro (quédate quieto)
-        ];
-        
-        this.reset();
-    }
-
-    reset() {
-        gsap.killTweensOf(this.model.position);
-        gsap.killTweensOf(this.model.rotation);
-        this.model.position.copy(this.initialPos);
-        this.model.rotation.set(0, 0, 0); 
-        this.state = 'IDLE';
-        this.startIdleAnimation();
-    }
-    
-    startIdleAnimation() {
-        gsap.to(this.model.position, {
-            x: this.initialPos.x + (Math.random() > 0.5 ? 0.3 : -0.3),
-            duration: 1.5 + Math.random(),
-            ease: 'power1.inOut',
-            yoyo: true,
-            repeat: -1
-        });
-    }
-
-    /**
-     * @param {THREE.Vector3} targetPoint - Ya no usamos este parámetro. El arquero adivina.
-     */
-    reactToShot(targetPoint) {
-        this.state = 'ANTICIPATE';
-        gsap.killTweensOf(this.model.position); 
-
-        // --- LÓGICA COMPLETAMENTE NUEVA ---
-        // El arquero elige aleatoriamente una zona a la que tirarse, ¡como en la vida real!
-        const randomIndex = Math.floor(Math.random() * this.diveZones.length);
-        const diveTarget = this.diveZones[randomIndex];
-        
-        setTimeout(() => this.dive(diveTarget), this.reactionTime * 1000);
-    }
-    
-    dive(target) {
-        this.state = 'DIVE';
-        
-        gsap.to(this.model.position, {
-            x: target.x,
-            y: target.y,
-            duration: 0.4,
-            ease: 'power2.out'
-        });
-        
-        // No te tires si te quedas en el centro
-        if (target.x !== 0 || target.y > 0.5) {
-            const direction = target.x > this.initialPos.x ? -1 : 1;
-            gsap.to(this.model.rotation, {
-                z: direction * Math.PI / 4, 
-                duration: 0.35,
-                ease: 'power2.out'
-            });
-        }
-    }
-    
-    checkSave(ballPosition) {
-        if (this.state !== 'DIVE') return false;
-        
-        const saveVolume = new THREE.Box3().setFromObject(this.model);
-        // --- CAMBIO SUTIL: Reducimos un poco el hitbox para que sea más justo ---
-        saveVolume.expandByScalar(0.0);
-        
-        return saveVolume.containsPoint(ballPosition);
-    }
-}
-</file>
-
-<file path="src/experience/Input.js">
-import EventEmitter from 'eventemitter3';
-import gsap from 'gsap';
-
-export default class InputManager extends EventEmitter {
-    constructor() {
-        super();
-        this.keys = {
-            w: false, a: false, s: false, d: false,
-            shift: false, space: false
-        };
-        this.power = 0;
-        this.charging = false;
-        this.movementEnabled = false;
-
-        // --- CAMBIO CRUCIAL AQUÍ ---
-        // Cambiamos 'window' por 'document' para asegurar que los eventos se capturen
-        // incluso cuando el puntero del mouse está bloqueado.
-        document.addEventListener('keydown', (e) => this.onKey(e.code, true));
-        document.addEventListener('keyup', (e) => this.onKey(e.code, false));
-    }
-    
-    setMovementEnabled(enabled) {
-        this.movementEnabled = enabled;
-    }
-
-    onKey(code, isPressed) {
-        // Para depuración, puedes descomentar la siguiente línea:
-        // console.log(`Key Event -> Code: ${code}, Pressed: ${isPressed}`);
-
-        switch(code) {
-            case 'KeyW':
-            case 'ArrowUp':
-                if (this.movementEnabled) this.keys.w = isPressed;
-                break;
-            case 'KeyA':
-            case 'ArrowLeft':
-                // La 'A' y 'D' deben funcionar tanto para moverse como para perfilarse
-                this.keys.a = isPressed;
-                break;
-            case 'KeyS':
-            case 'ArrowDown':
-                if (this.movementEnabled) this.keys.s = isPressed;
-                break;
-            case 'KeyD':
-            case 'ArrowRight':
-                // La 'A' y 'D' deben funcionar tanto para moverse como para perfilarse
-                this.keys.d = isPressed;
-                break;
-            case 'ShiftLeft':
-                this.keys.shift = isPressed;
-                break;
-            case 'Space':
-                this.handleSpace(isPressed);
-                break;
-        }
-    }
-
-    handleSpace(isPressed) {
-        if (isPressed && !this.charging) {
-            // Iniciar carga solo si estamos en el estado de apuntado (AIMING)
-            // Esto lo controlará la máquina de estados, aquí solo registramos la pulsación.
-            this.charging = true;
-            this.power = 0;
-            gsap.to(this, { power: 1, duration: 1.5, ease: 'power1.in' });
-        } else if (!isPressed && this.charging) {
-            // Soltar y patear
-            this.charging = false;
-            gsap.killTweensOf(this); // Detiene la animación de carga
-            this.emit('kick', this.power);
-            this.power = 0;
-        }
-    }
-}
-</file>
-
-<file path="src/experience/SceneManager.js">
-import * as THREE from 'three';
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import gsap from 'gsap';
-
-import Assets from './Assets';
-import StateMachine from './States';
-import InputManager from './Input';
-import AudioManager from './Audio';
-import UIManager from './UI';
-import GoalkeeperAI from './GoalkeeperAI';
-import ShotModel from './ShotModel';
-
-export default class SceneManager {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.sizes = { width: window.innerWidth, height: window.innerHeight };
-        
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, this.sizes.width / this.sizes.height, 0.1, 100);
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
-        this.renderer.setSize(this.sizes.width, this.sizes.height);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer.shadowMap.enabled = true;
-
-        this.assets = new Assets();
-        this.input = new InputManager();
-        this.ui = new UIManager();
-        this.audio = new AudioManager();
-        this.stateMachine = new StateMachine(this);
-        this.shotModel = new ShotModel();
-
-        this.player = new THREE.Group();
-        this.ball = null;
-        this.goalkeeper = null;
-        this.goal = null;
-        this.cameraLookTarget = new THREE.Vector3(); 
-
-        this.controls = new PointerLockControls(this.camera, document.body);
-        this.goalkeeperAI = null;
-
-        this.init();
-    }
-
-    init() {
-        this.setupScene();
-        this.bindEventListeners();
-        
-        this.assets.on('loaded', () => {
-            this.buildWorld();
-            this.stateMachine.changeState('INTRO');
-        });
-    }
-
-    setupScene() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        this.scene.add(ambientLight);
-
-        const spotLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI * 0.2, 0.5);
-        spotLight.position.set(0, 15, 0); 
-        spotLight.castShadow = true;
-        this.scene.add(spotLight);
-
-        const ground = new THREE.Mesh(
-            new THREE.PlaneGeometry(100, 100),
-            new THREE.MeshStandardMaterial({ color: 0x2d6a2b }) 
-        );
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        this.scene.add(ground);
-
-        const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const spotGeometry = new THREE.CircleGeometry(0.1, 32);
-        const penaltySpot = new THREE.Mesh(spotGeometry, lineMaterial);
-        penaltySpot.rotation.x = -Math.PI / 2;
-        penaltySpot.position.y = 0.01; 
-        this.scene.add(penaltySpot);
-    }
-    
-    buildWorld() {
-        const goalModel = this.assets.get('arco');
-        this.goal = goalModel.scene;
-        this.goal.position.set(0, 0, -15);
-        this.goal.scale.set(3, 3, 3);
-        this.scene.add(this.goal);
-
-        const ballModel = this.assets.get('pelota');
-        this.ball = ballModel.scene;
-        this.ball.scale.set(0.1, 0.1, 0.1);
-        this.ball.castShadow = true;
-        this.scene.add(this.ball);
-        
-        const keeperModel = this.assets.get('arquero');
-        this.goalkeeper = keeperModel.scene;
-        this.goalkeeper.position.set(0, 0, -14.8);
-        this.goalkeeper.scale.set(1.5, 1.5, 1.5);
-        this.scene.add(this.goalkeeper);
-        this.goalkeeperAI = new GoalkeeperAI(this.goalkeeper);
-
-        this.player.add(this.camera);
-        this.scene.add(this.player);
-    }
-
-    resetScene() {
-        this.player.position.set(0, 1.7, 8);
-        this.camera.rotation.set(0, 0, 0);
-        
-        if (!this.player.children.includes(this.camera)) this.player.add(this.camera);
-        this.toPlayerView();
-        
-        if (this.ball) {
-            this.ball.position.set(0, 0.1, 0); 
-            if (this.ball.userData.velocity) this.ball.userData.velocity.set(0,0,0);
-        }
-        
-        if (this.goalkeeperAI) this.goalkeeperAI.reset();
-        this.ui.reset();
-        this.stateMachine.changeState('PRE_PENAL');
-    }
-
-    bindEventListeners() {
-        // --- CAMBIO CLAVE AQUÍ: Se eliminó el parámetro (e) para que coincida con el emit() de UI.js ---
-        this.ui.on('start', () => {
-            this.audio.init(); 
-            this.audio.play('crowd', true);
-            this.controls.lock();
-            this.resetScene(); 
-        });
-        
-        this.ui.on('retry', () => {
-            this.resetScene();
-            this.controls.lock();
-        });
-
-        this.input.on('kick', (power) => {
-            if(this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
-                this.stateMachine.changeState('KICK', { power });
-            }
-        });
-
-        this.controls.addEventListener('lock', () => this.ui.showHUD(true));
-        this.controls.addEventListener('unlock', () => this.ui.showHUD(false));
-    }
-
-    update(deltaTime) {
-        if(this.stateMachine.currentState) {
-            this.stateMachine.currentState.update(deltaTime);
-        }
-        
-        if (this.stateMachine.currentState && (this.stateMachine.currentState.name === 'KICK' || this.stateMachine.currentState.name === 'OUTCOME')) {
-            this.camera.lookAt(this.cameraLookTarget);
-        }
-
-        this.renderer.render(this.scene, this.camera);
-    }
-    
-    toPlayerView() {
-        gsap.to(this.camera.position, { x: 0, y: 0, z: 0, duration: 0.5 });
-        this.camera.lookAt(0, 1, -15);
-    }
-
-    toBallFollowView(ball) {
-        const startPos = new THREE.Vector3();
-        this.camera.getWorldPosition(startPos);
-        
-        this.player.remove(this.camera);
-        this.scene.add(this.camera);
-        this.camera.position.copy(startPos);
-
-        this.cameraLookTarget.copy(ball.position);
-
-        gsap.to(this.camera.position, {
-            x: startPos.x, y: startPos.y + 1, z: startPos.z + 2,
-            duration: 1.5
-        });
-        
-        gsap.to(this.cameraLookTarget, {
-            x: () => ball.position.x,
-            y: () => Math.max(ball.position.y, 0.5),
-            z: () => ball.position.z,
-            duration: 3, 
-            ease: "power2.out"
-        });
-    }
-
-    toStadiumView() {
-        gsap.to(this.camera.position, { x: 15, y: 10, z: -5, duration: 1 });
-        gsap.to(this.cameraLookTarget, {
-            x: this.goal.position.x,
-            y: this.goal.position.y + 1,
-            z: this.goal.position.z,
-            duration: 1
-        });
-    }
-
-    onResize() {
-        this.sizes.width = window.innerWidth;
-        this.sizes.height = window.innerHeight;
-        this.camera.aspect = this.sizes.width / this.sizes.height;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(this.sizes.width, this.sizes.height);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    }
-}
-</file>
-
 <file path="src/experience/ShotModel.js">
 import * as THREE from 'three';
 
@@ -771,257 +316,6 @@ export default class ShotModel {
         );
 
         return { initialVelocity, targetPoint };
-    }
-}
-</file>
-
-<file path="src/experience/States.js">
-import * as THREE from 'three';
-import gsap from 'gsap';
-
-const PENALTY_SPOT = new THREE.Vector3(0, 0, 0);
-const PLAYER_AREA_RADIUS = 9; 
-const GRAVITY = 9.8;
-
-class State {
-    constructor(name, manager) {
-        this.name = name;
-        this.manager = manager;
-    }
-    enter(params) {}
-    update(deltaTime) {}
-    exit() {}
-}
-
-class IntroState extends State {
-    enter() { this.manager.ui.showIntro(true); }
-    exit() { this.manager.ui.showIntro(false); }
-}
-
-class PrePenalState extends State {
-    enter() {
-        this.manager.audio.fade('heartbeat', 0.5, 2);
-        this.manager.input.setMovementEnabled(true);
-    }
-    update(deltaTime) {
-        const moveSpeed = this.manager.input.keys.shift ? 6.0 : 3.0;
-        const moveDirection = new THREE.Vector3();
-
-        if (this.manager.input.keys.w) moveDirection.z -= 1;
-        if (this.manager.input.keys.s) moveDirection.z += 1;
-        if (this.manager.input.keys.a) moveDirection.x -= 1;
-        if (this.manager.input.keys.d) moveDirection.x += 1;
-
-        if (moveDirection.length() > 0) {
-            moveDirection.normalize().multiplyScalar(moveSpeed * deltaTime);
-            const yRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, this.manager.camera.rotation.y, 0));
-            moveDirection.applyQuaternion(yRotation);
-            
-            const nextPosition = this.manager.player.position.clone().add(moveDirection);
-            
-            if (nextPosition.distanceTo(PENALTY_SPOT) < PLAYER_AREA_RADIUS) {
-                 this.manager.player.position.add(moveDirection);
-            }
-        }
-        
-        const playerPos2D = new THREE.Vector2(this.manager.player.position.x, this.manager.player.position.z);
-        const ballPos2D = new THREE.Vector2(this.manager.ball.position.x, this.manager.ball.position.z);
-        
-        if (playerPos2D.distanceTo(ballPos2D) < 2.5) {
-            this.manager.stateMachine.changeState('AIMING');
-        }
-    }
-    exit() { this.manager.input.setMovementEnabled(false); }
-}
-
-class AimingState extends State {
-    update(deltaTime) {
-        const profileSpeed = 1.0;
-        if (this.manager.input.keys.a) this.manager.player.position.x -= profileSpeed * deltaTime;
-        if (this.manager.input.keys.d) this.manager.player.position.x += profileSpeed * deltaTime;
-        
-        this.manager.player.position.x = THREE.MathUtils.clamp(this.manager.player.position.x, -1.5, 1.5);
-        this.manager.ui.updatePowerBar(this.manager.input.power);
-    }
-}
-
-class KickState extends State {
-    constructor(name, manager) {
-        super(name, manager);
-        this.hasCheckedOutcome = false;
-    }
-
-    enter(params) {
-        this.hasCheckedOutcome = false;
-        this.manager.audio.play('whistle');
-        this.manager.audio.fade('heartbeat', 0, 0.5);
-        this.manager.ui.showHUD(false);
-        this.manager.input.power = 0; 
-
-        const pressure = this.manager.ui.getPressure();
-        const shotData = this.manager.shotModel.calculateTrajectory(
-            this.manager.camera.rotation, params.power, pressure
-        );
-        
-        this.manager.ball.userData.velocity = shotData.initialVelocity;
-        this.manager.ball.userData.targetPoint = shotData.targetPoint;
-
-        this.manager.toBallFollowView(this.manager.ball);
-        this.manager.goalkeeperAI.reactToShot(shotData.targetPoint);
-        
-        gsap.to(this.manager.camera.position, { z: this.manager.camera.position.z - 0.2, yoyo: true, repeat: 1, duration: 0.1 });
-    }
-
-    update(deltaTime) {
-        if (!this.manager.ball.userData.velocity) return;
-
-        this.manager.ball.position.add(this.manager.ball.userData.velocity.clone().multiplyScalar(deltaTime));
-        this.manager.ball.userData.velocity.y -= GRAVITY * deltaTime;
-        
-        const GOAL_LINE_Z = -15; 
-        if (this.manager.ball.position.z <= GOAL_LINE_Z && !this.hasCheckedOutcome) {
-            this.checkOutcome();
-        }
-    }
-
-    // --- FUNCIÓN COMPLETAMENTE REESCRITA ---
-    checkOutcome() {
-        this.hasCheckedOutcome = true;
-        const ballPos = this.manager.ball.position;
-        const goalWidth = 4.6; 
-        const goalHeight = 2.44;
-
-        // 1. ¿La atajó el arquero?
-        if (this.manager.goalkeeperAI.checkSave(ballPos)) {
-            this.manager.stateMachine.changeState('OUTCOME', { result: 'save' });
-        
-        // 2. ¿Se fue afuera (palo, travesaño o desviado)?
-        } else if (Math.abs(ballPos.x) > goalWidth / 2 || ballPos.y > goalHeight || ballPos.y < 0) {
-            this.manager.stateMachine.changeState('OUTCOME', { result: 'post' }); // Usamos 'post' para todos los fallos
-
-        // 3. Si no fue atajada y no se fue afuera, ¡es GOL!
-        } else {
-            this.manager.stateMachine.changeState('OUTCOME', { result: 'goal' });
-        }
-    }
-    
-    exit() {
-        if(this.manager.ball.userData.velocity) this.manager.ball.userData.velocity.set(0,0,0);
-    }
-}
-
-class OutcomeState extends State {
-    enter(params) {
-        switch(params.result) {
-            case 'goal':
-                this.manager.audio.play('goal');
-                this.manager.audio.fade('crowd', 1, 1);
-                this.manager.toStadiumView();
-                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡GOOOOL!" }), 2000);
-                break;
-            case 'save':
-            case 'post': // Ahora 'post' cubre todos los fallos
-                this.manager.audio.play('fail');
-                this.manager.audio.fade('crowd', 0.2, 1);
-                gsap.to(this.manager.ball.position, { 
-                    x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
-                    z: this.manager.ball.position.z - 1, duration: 1
-                });
-                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡Fallado!" }), 2000);
-                break;
-            // El caso 'fail' ya no es necesario, lo cubre 'post'
-        }
-    }
-}
-
-class EpilogueState extends State {
-    enter(params) {
-        this.manager.ui.showEpilogue(true, params.title);
-        this.manager.controls.unlock();
-    }
-    exit() { this.manager.ui.showEpilogue(false); }
-}
-
-
-export default class StateMachine {
-    constructor(manager) {
-        this.manager = manager;
-        this.states = {
-            'INTRO': new IntroState('INTRO', manager),
-            'PRE_PENAL': new PrePenalState('PRE_PENAL', manager),
-            'AIMING': new AimingState('AIMING', manager),
-            'KICK': new KickState('KICK', manager),
-            'OUTCOME': new OutcomeState('OUTCOME', manager),
-            'EPILOGUE': new EpilogueState('EPILOGUE', manager),
-        };
-        this.currentState = null;
-    }
-
-    changeState(name, params) {
-        if (this.currentState) this.currentState.exit();
-        this.currentState = this.states[name];
-        this.currentState.enter(params);
-    }
-
-    update(deltaTime) {
-        if (this.currentState) this.currentState.update(deltaTime);
-    }
-}
-</file>
-
-<file path="src/experience/UI.js">
-import EventEmitter from 'eventemitter3';
-
-export default class UIManager extends EventEmitter {
-    constructor() {
-        super();
-        this.introOverlay = document.getElementById('intro-overlay');
-        this.epilogueOverlay = document.getElementById('epilogue-overlay');
-        this.hud = document.getElementById('hud');
-        this.powerBar = document.getElementById('power-bar');
-        this.pressureSlider = document.getElementById('pressure-slider');
-        
-        // --- CAMBIO CLAVE AQUÍ ---
-        // Añadimos el evento 'e' para poder acceder al botón que fue clickeado.
-        document.getElementById('start-button').addEventListener('click', (e) => {
-            this.emit('start');
-            e.target.blur(); // Le quitamos el foco al botón para que no intercepte la barra espaciadora.
-        });
-        
-        document.getElementById('retry-button').addEventListener('click', (e) => {
-            this.emit('retry');
-            e.target.blur(); // Hacemos lo mismo para el botón de reintentar.
-        });
-        
-        // TODO: Lógica para el botón 'view-toggle-button'
-    }
-
-    showIntro(visible) {
-        this.introOverlay.classList.toggle('hidden', !visible);
-        this.introOverlay.classList.toggle('active', visible);
-    }
-    
-    showHUD(visible) {
-        this.hud.classList.toggle('hidden', !visible);
-    }
-
-    showEpilogue(visible, title = "") {
-        document.getElementById('epilogue-title').innerText = title;
-        this.epilogueOverlay.classList.toggle('hidden', !visible);
-        this.epilogueOverlay.classList.toggle('active', visible);
-    }
-
-    updatePowerBar(power) {
-        this.powerBar.style.width = `${power * 100}%`;
-    }
-
-    getPressure() {
-        return parseFloat(this.pressureSlider.value);
-    }
-    
-    reset() {
-        this.showHUD(true);
-        this.showEpilogue(false);
     }
 }
 </file>
@@ -1127,6 +421,996 @@ body, html { margin: 0; padding: 0; overflow: hidden; background: #000; font-fam
     padding: 10px;
     border-radius: 5px;
     pointer-events: all;
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "final-penalty-kick",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.1",
+    "gsap": "^3.13.0",
+    "three": "^0.180.0"
+  }
+}
+</file>
+
+<file path="src/experience/UI.js">
+import EventEmitter from 'eventemitter3';
+
+export default class UIManager extends EventEmitter {
+    constructor() {
+        super();
+        this.introOverlay = document.getElementById('intro-overlay');
+        this.epilogueOverlay = document.getElementById('epilogue-overlay');
+        this.hud = document.getElementById('hud');
+        this.powerBar = document.getElementById('power-bar');
+        this.pressureSlider = document.getElementById('pressure-slider');
+        
+        // --- CAMBIO CLAVE AQUÍ ---
+        // Añadimos el evento 'e' para poder acceder al botón que fue clickeado.
+        document.getElementById('start-button').addEventListener('click', (e) => {
+            console.log('🎮 START BUTTON CLICKED - About to emit start event');
+            this.emit('start');
+            console.log('✅ Start event emitted');
+            e.target.blur(); // Le quitamos el foco al botón para que no intercepte la barra espaciadora.
+        });
+        
+        document.getElementById('retry-button').addEventListener('click', (e) => {
+            this.emit('retry');
+            e.target.blur(); // Hacemos lo mismo para el botón de reintentar.
+        });
+        
+        // TODO: Lógica para el botón 'view-toggle-button'
+    }
+
+    showIntro(visible) {
+        this.introOverlay.classList.toggle('hidden', !visible);
+        this.introOverlay.classList.toggle('active', visible);
+    }
+    
+    showHUD(visible) {
+        this.hud.classList.toggle('hidden', !visible);
+    }
+
+    showEpilogue(visible, title = "") {
+        document.getElementById('epilogue-title').innerText = title;
+        this.epilogueOverlay.classList.toggle('hidden', !visible);
+        this.epilogueOverlay.classList.toggle('active', visible);
+    }
+
+    updatePowerBar(power) {
+        this.powerBar.style.width = `${power * 100}%`;
+    }
+
+    getPressure() {
+        return parseFloat(this.pressureSlider.value);
+    }
+    
+    reset() {
+        this.showHUD(true);
+        this.showEpilogue(false);
+    }
+}
+</file>
+
+<file path="src/experience/Audio.js">
+import * as THREE from 'three';
+import gsap from 'gsap';
+
+export default class AudioManager {
+    constructor() {
+        this.listener = null;
+        this.sounds = {};
+        // Solo Montiel - audio de penal
+        this.audioSources = {
+            montiel: [
+                './audio/montiel.weba',
+                '/audio/montiel.weba',
+                'audio/montiel.weba',
+                './public/audio/montiel.weba',
+                '/public/audio/montiel.weba'
+            ]
+        };
+        
+        // Inicializar audio automáticamente
+        console.log('🎵 AudioManager constructor - auto-initializing...');
+        this.autoInit();
+    }
+
+    autoInit() {
+        try {
+            this.listener = new THREE.AudioListener();
+            console.log('AudioListener created automatically');
+            
+            // Intentar cargar audios inmediatamente
+            Object.entries(this.audioSources).forEach(([name, paths]) => {
+                const sound = new THREE.Audio(this.listener);
+                this.sounds[name] = sound;
+                
+                console.log(`Auto-loading audio: ${name}`);
+                this.tryLoadAudio(name, paths, 0, sound);
+            });
+        } catch (error) {
+            console.error('Error in auto-init:', error);
+        }
+    }
+
+    init(camera = null) {
+        console.log('🎵 AudioManager.init() called');
+        console.log('Camera provided:', !!camera);
+        
+        // La creación del AudioContext debe estar tras un gesto del usuario
+        this.listener = new THREE.AudioListener();
+        console.log('AudioListener created:', this.listener);
+        
+        // Si se proporciona una cámara, añadir el listener a ella
+        if (camera) {
+            camera.add(this.listener);
+            console.log('AudioListener added to camera');
+        }
+        
+        const audioLoader = new THREE.AudioLoader();
+        console.log('AudioLoader created:', audioLoader);
+        console.log('Audio sources to load:', this.audioSources);
+
+        Object.entries(this.audioSources).forEach(([name, paths]) => {
+            const sound = new THREE.Audio(this.listener);
+            this.sounds[name] = sound;
+            
+            console.log(`Attempting to load audio: ${name}`);
+            console.log(`Available paths:`, paths);
+            
+            // Intentar cargar desde la primera ruta
+            this.tryLoadAudio(name, paths, 0, sound);
+        });
+    }
+
+    play(name, loop = false) {
+        const sound = this.sounds[name];
+        if (sound && sound.buffer && !sound.isPlaying) {
+            sound.setLoop(loop);
+            try {
+                sound.play();
+            } catch (error) {
+                console.warn(`Could not play sound: ${name}`, error);
+            }
+        } else if (!sound) {
+            console.warn(`Sound not found: ${name}`);
+        }
+    }
+
+    stop(name) {
+        const sound = this.sounds[name];
+        if (sound && sound.isPlaying) {
+            sound.stop();
+        }
+    }
+
+    fade(name, targetVolume, duration) {
+        const sound = this.sounds[name];
+        if (sound) {
+            gsap.to(sound, { volume: targetVolume, duration: duration });
+        }
+    }
+
+    ensureMontielReady() {
+        const montiel = this.sounds['montiel'];
+        console.log('🔊 Checking montiel audio...', !!montiel, !!montiel?.buffer);
+        
+        if (montiel && montiel.buffer) {
+            console.log('✅ Montiel audio is ready!');
+            return true;
+        } else {
+            console.warn('⚠️ Montiel audio not ready yet');
+            return false;
+        }
+    }
+
+    // Activar audio context después de interacción del usuario
+    activateAudioContext() {
+        const montiel = this.sounds['montiel'];
+        if (montiel && montiel.buffer) {
+            // Reproducir y pausar inmediatamente para activar el contexto
+            try {
+                montiel.setVolume(0); // Volumen 0 para que no se escuche
+                montiel.play();
+                setTimeout(() => {
+                    montiel.stop();
+                    montiel.setVolume(0.8); // Restaurar volumen para uso posterior
+                    console.log('🎵 Audio context activated! Montiel ready to play.');
+                }, 100);
+            } catch (error) {
+                console.error('Error activating audio context:', error);
+            }
+        }
+    }
+
+    playMontiel() {
+        const montiel = this.sounds['montiel'];
+        console.log('🎙️ Attempting to play Montiel...', !!montiel, !!montiel?.buffer);
+        
+        if (montiel && montiel.buffer) {
+            if (montiel.isPlaying) {
+                montiel.stop(); // Detener si ya está sonando
+                console.log('🔄 Stopped previous Montiel playback');
+            }
+            
+            montiel.setVolume(0.8); // Volumen alto para Montiel
+            
+            try {
+                montiel.play();
+                console.log('🎙️ ¡MONTIEL SUENA! Volume:', montiel.volume);
+            } catch (error) {
+                console.error('❌ Error playing Montiel audio:', error);
+                // Intentar después de un pequeño delay
+                setTimeout(() => {
+                    try {
+                        montiel.play();
+                        console.log('🎙️ ¡MONTIEL SUENA EN RETRY!');
+                    } catch (e) {
+                        console.error('❌ Retry failed:', e);
+                    }
+                }, 500);
+            }
+        } else {
+            console.warn('⚠️ Montiel audio not ready yet');
+        }
+    }
+
+    // Método de diagnóstico
+    getAudioStatus() {
+        const status = {};
+        Object.entries(this.sounds).forEach(([name, sound]) => {
+            status[name] = {
+                loaded: !!sound.buffer,
+                playing: sound.isPlaying,
+                volume: sound.volume,
+                context: sound.context?.state || 'unknown'
+            };
+        });
+        console.log('📊 Audio Status Details:', status);
+        return status;
+    }
+
+    tryLoadAudio(name, paths, pathIndex, sound) {
+        if (pathIndex >= paths.length) {
+            console.error(`❌ All paths failed for audio: ${name}`);
+            return;
+        }
+
+        const path = paths[pathIndex];
+        const audioLoader = new THREE.AudioLoader();
+        
+        console.log(`🔄 Trying path ${pathIndex + 1}/${paths.length}: ${path}`);
+        
+        audioLoader.load(path,
+            // Success callback
+            (buffer) => {
+                sound.setBuffer(buffer);
+                sound.setVolume(0.5);
+                
+                if (name === 'crowd') {
+                    sound.setLoop(true);
+                    sound.setVolume(0.3);
+                    console.log('✅ Crowd audio loaded and configured successfully');
+                }
+                console.log(`✅ Audio ${name} loaded successfully from: ${path}`);
+            },
+            // Progress callback
+            (progress) => {
+                if (progress.total > 0) {
+                    const percent = Math.round(progress.loaded / progress.total * 100);
+                    console.log(`⏳ Loading ${name}: ${percent}%`);
+                }
+            },
+            // Error callback
+            (error) => {
+                console.warn(`❌ Failed to load ${name} from: ${path}`);
+                console.log(`Trying next path...`);
+                
+                // Intentar con la siguiente ruta
+                this.tryLoadAudio(name, paths, pathIndex + 1, sound);
+            }
+        );
+    }
+
+    loadAudioWithAlternatePath(name, alternatePath, sound) {
+        const audioLoader = new THREE.AudioLoader();
+        console.log(`🔄 Trying to load ${name} from alternate path: ${alternatePath}`);
+        
+        audioLoader.load(alternatePath,
+            // Success callback
+            (buffer) => {
+                sound.setBuffer(buffer);
+                sound.setVolume(0.5);
+                
+                if (name === 'crowd') {
+                    sound.setLoop(true);
+                    sound.setVolume(0.3);
+                    console.log('✅ Crowd audio loaded successfully from alternate path');
+                }
+                console.log(`✅ Audio ${name} loaded from alternate path`);
+            },
+            // Progress callback
+            (progress) => {
+                if (progress.total > 0) {
+                    const percent = Math.round(progress.loaded / progress.total * 100);
+                    console.log(`⏳ Loading ${name} (alternate): ${percent}%`);
+                }
+            },
+            // Error callback
+            (error) => {
+                console.error(`❌ Failed to load ${name} from alternate path too:`, error);
+                console.log(`❌ Audio ${name} completely failed to load. Check if file exists.`);
+            }
+        );
+    }
+}
+</file>
+
+<file path="src/experience/GoalkeeperAI.js">
+import * as THREE from 'three';
+import gsap from 'gsap';
+
+export default class GoalkeeperAI {
+    constructor(model) {
+        this.model = model;
+        this.initialPos = model.position.clone();
+        this.state = 'IDLE'; // IDLE, ANTICIPATE, DIVE
+        this.reactionTime = 0.2; // Tiempo de reacción balanceado
+
+        // --- CAMBIO CLAVE: Zonas de atajada predefinidas ---
+        // Estas son las "decisiones" que el arquero puede tomar.
+        // Ajustadas para que coincidan con las dimensiones de detección de gol en States.js
+        const goalWidth = 10.0;  // La mitad de 20.0 (goalWidth en States.js)
+        const goalHeight = 4.0;  // La mitad de 8.0 (goalHeight en States.js)
+        this.diveZones = [
+            new THREE.Vector3(-goalWidth, goalHeight, this.initialPos.z), // Arriba izquierda
+            new THREE.Vector3(0, goalHeight, this.initialPos.z),          // Arriba centro
+            new THREE.Vector3(goalWidth, goalHeight, this.initialPos.z),  // Arriba derecha
+            new THREE.Vector3(-goalWidth, 0.5, this.initialPos.z),       // Abajo izquierda
+            new THREE.Vector3(goalWidth, 0.5, this.initialPos.z),        // Abajo derecha
+            new THREE.Vector3(0, 0.5, this.initialPos.z),                // Abajo centro (quédate quieto)
+        ];
+        
+        this.reset();
+    }
+
+    reset() {
+        gsap.killTweensOf(this.model.position);
+        gsap.killTweensOf(this.model.rotation);
+        this.model.position.copy(this.initialPos);
+        this.model.rotation.set(0, 0, 0); 
+        this.state = 'IDLE';
+        this.startIdleAnimation();
+    }
+    
+    startIdleAnimation() {
+        gsap.to(this.model.position, {
+            x: this.initialPos.x + (Math.random() > 0.5 ? 0.3 : -0.3),
+            duration: 1.5 + Math.random(),
+            ease: 'power1.inOut',
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * @param {THREE.Vector3} targetPoint - Punto donde se predice que llegará la pelota
+     */
+    reactToShot(targetPoint) {
+        this.state = 'ANTICIPATE';
+        gsap.killTweensOf(this.model.position); 
+
+        // Mejorar la lógica del arquero: combinar intuición con predicción
+        let diveTarget;
+        
+        // 40% de probabilidad de ir hacia el targetPoint, 60% de adivinar mal
+        if (Math.random() < 0.4 && targetPoint) {
+            // Ir hacia donde realmente va la pelota (con más error)
+            const errorX = (Math.random() - 0.5) * 4; // Error de ±2 unidades (más error)
+            const errorY = (Math.random() - 0.5) * 2; // Error de ±1 unidad (más error)
+            
+            diveTarget = new THREE.Vector3(
+                Math.max(-10, Math.min(10, targetPoint.x + errorX)), // Limitar al ancho del arco
+                Math.max(0.5, Math.min(4, targetPoint.y + errorY)), // Limitar a la altura del arco
+                this.initialPos.z
+            );
+        } else {
+            // Adivinar mal: elegir una zona aleatoria
+            const randomIndex = Math.floor(Math.random() * this.diveZones.length);
+            diveTarget = this.diveZones[randomIndex];
+        }
+        
+        setTimeout(() => this.dive(diveTarget), this.reactionTime * 1000);
+    }
+    
+    dive(target) {
+        this.state = 'DIVE';
+        
+        // Movimiento más rápido y agresivo del arquero
+        gsap.to(this.model.position, {
+            x: target.x,
+            y: target.y,
+            duration: 0.3, // Más rápido
+            ease: 'power3.out' // Easing más agresivo
+        });
+        
+        // Rotación más dramática cuando se tira a los lados
+        if (Math.abs(target.x) > 1 || target.y > 1) {
+            const direction = target.x > this.initialPos.x ? -1 : 1;
+            gsap.to(this.model.rotation, {
+                z: direction * Math.PI / 3, // Rotación más dramática
+                duration: 0.25,
+                ease: 'power3.out'
+            });
+        }
+    }
+    
+    checkSave(ballPosition) {
+        if (this.state !== 'DIVE') return false;
+        
+        // Crear un hitbox más generoso basado en la posición actual del arquero
+        const keeperPos = this.model.position;
+        const saveRadius = 2.0; // Radio de alcance del arquero (reducido un poco)
+        
+        // Verificar si la pelota está dentro del alcance del arquero
+        const distance = new THREE.Vector3(
+            ballPosition.x - keeperPos.x,
+            ballPosition.y - keeperPos.y,
+            ballPosition.z - keeperPos.z
+        ).length();
+        
+        // Factor de suerte más realista para hacer las atajadas menos frecuentes
+        const luckFactor = Math.random() < 0.5; // 50% de probabilidad de atajar si está en rango
+        
+        return distance <= saveRadius && luckFactor;
+    }
+}
+</file>
+
+<file path="src/experience/Input.js">
+import EventEmitter from 'eventemitter3';
+import gsap from 'gsap';
+
+export default class InputManager extends EventEmitter {
+    constructor() {
+        super();
+        this.keys = {
+            w: false, a: false, s: false, d: false,
+            shift: false, space: false
+        };
+        this.power = 0;
+        this.charging = false;
+        this.movementEnabled = false;
+
+        // --- CAMBIO CRUCIAL AQUÍ ---
+        // Cambiamos 'window' por 'document' para asegurar que los eventos se capturen
+        // incluso cuando el puntero del mouse está bloqueado.
+        document.addEventListener('keydown', (e) => this.onKey(e.code, true));
+        document.addEventListener('keyup', (e) => this.onKey(e.code, false));
+    }
+    
+    setMovementEnabled(enabled) {
+        this.movementEnabled = enabled;
+    }
+
+    onKey(code, isPressed) {
+        // Para depuración, descomenta la siguiente línea:
+        console.log(`Key Event -> Code: ${code}, Pressed: ${isPressed}, Movement Enabled: ${this.movementEnabled}`);
+
+        switch(code) {
+            case 'KeyW':
+            case 'ArrowUp':
+                if (this.movementEnabled) this.keys.w = isPressed;
+                break;
+            case 'KeyA':
+            case 'ArrowLeft':
+                // La 'A' y 'D' deben funcionar tanto para moverse como para perfilarse
+                this.keys.a = isPressed;
+                break;
+            case 'KeyS':
+            case 'ArrowDown':
+                if (this.movementEnabled) this.keys.s = isPressed;
+                break;
+            case 'KeyD':
+            case 'ArrowRight':
+                // La 'A' y 'D' deben funcionar tanto para moverse como para perfilarse
+                this.keys.d = isPressed;
+                break;
+            case 'ShiftLeft':
+                this.keys.shift = isPressed;
+                break;
+            case 'KeyT': // Tecla T para probar audio
+                if (isPressed) {
+                    this.emit('test-audio');
+                }
+                break;
+            case 'Space':
+                this.handleSpace(isPressed);
+                break;
+        }
+    }
+
+    handleSpace(isPressed) {
+        if (isPressed && !this.charging) {
+            // Iniciar carga solo si estamos en el estado de apuntado (AIMING)
+            // Esto lo controlará la máquina de estados, aquí solo registramos la pulsación.
+            this.charging = true;
+            this.power = 0;
+            gsap.to(this, { power: 1, duration: 1.5, ease: 'power1.in' });
+        } else if (!isPressed && this.charging) {
+            // Soltar y patear
+            this.charging = false;
+            gsap.killTweensOf(this); // Detiene la animación de carga
+            this.emit('kick', this.power);
+            this.power = 0;
+        }
+    }
+}
+</file>
+
+<file path="src/experience/SceneManager.js">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import gsap from 'gsap';
+
+import Assets from './Assets';
+import StateMachine from './States';
+import InputManager from './Input';
+import AudioManager from './Audio';
+import UIManager from './UI';
+import GoalkeeperAI from './GoalkeeperAI';
+import ShotModel from './ShotModel';
+
+export default class SceneManager {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.sizes = { width: window.innerWidth, height: window.innerHeight };
+        
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, this.sizes.width / this.sizes.height, 0.1, 100);
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+        this.renderer.setSize(this.sizes.width, this.sizes.height);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+
+        this.assets = new Assets();
+        this.input = new InputManager();
+        this.ui = new UIManager();
+        this.audio = new AudioManager();
+        this.stateMachine = new StateMachine(this);
+        this.shotModel = new ShotModel();
+
+        this.player = new THREE.Group();
+        this.ball = null;
+        this.goalkeeper = null;
+        this.goal = null;
+        this.cameraLookTarget = new THREE.Vector3(); 
+
+        this.controls = new PointerLockControls(this.camera, document.body);
+        this.goalkeeperAI = null;
+
+        this.init();
+    }
+
+    init() {
+        console.log('🚀 SceneManager init() called');
+        this.setupScene();
+        this.bindEventListeners();
+        
+        // Inicializar audio inmediatamente
+        console.log('🎵 Initializing audio immediately...');
+        this.audio.init(this.camera);
+        
+        this.assets.on('loaded', () => {
+            this.buildWorld();
+            console.log('✅ Assets loaded, checking montiel audio...');
+            // Verificar que Montiel esté listo
+            setTimeout(() => {
+                this.audio.ensureMontielReady();
+            }, 500);
+            this.stateMachine.changeState('INTRO');
+        });
+    }
+
+    setupScene() {
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
+
+        const spotLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI * 0.2, 0.5);
+        spotLight.position.set(0, 15, 0); 
+        spotLight.castShadow = true;
+        this.scene.add(spotLight);
+
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(100, 100),
+            new THREE.MeshStandardMaterial({ color: 0x2d6a2b }) 
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+
+        const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const spotGeometry = new THREE.CircleGeometry(0.1, 32);
+        const penaltySpot = new THREE.Mesh(spotGeometry, lineMaterial);
+        penaltySpot.rotation.x = -Math.PI / 2;
+        penaltySpot.position.y = 0.01; 
+        this.scene.add(penaltySpot);
+    }
+    
+    buildWorld() {
+        const goalModel = this.assets.get('arco');
+        this.goal = goalModel.scene;
+        this.goal.position.set(0, 0, -15);
+        this.goal.scale.set(3, 3, 3);
+        this.scene.add(this.goal);
+
+        const ballModel = this.assets.get('pelota');
+        this.ball = ballModel.scene;
+        this.ball.scale.set(0.1, 0.1, 0.1);
+        this.ball.castShadow = true;
+        this.scene.add(this.ball);
+        
+        const keeperModel = this.assets.get('arquero');
+        this.goalkeeper = keeperModel.scene;
+        this.goalkeeper.position.set(0, 0, -14.8);
+        this.goalkeeper.scale.set(1.5, 1.5, 1.5);
+        this.scene.add(this.goalkeeper);
+        this.goalkeeperAI = new GoalkeeperAI(this.goalkeeper);
+
+        this.player.add(this.camera);
+        this.scene.add(this.player);
+    }
+
+    resetScene() {
+        this.player.position.set(0, 1.7, 8);
+        this.camera.rotation.set(0, 0, 0);
+        
+        if (!this.player.children.includes(this.camera)) this.player.add(this.camera);
+        this.toPlayerView();
+        
+        if (this.ball) {
+            this.ball.position.set(0, 0.1, 0); 
+            if (this.ball.userData.velocity) this.ball.userData.velocity.set(0,0,0);
+        }
+        
+        if (this.goalkeeperAI) this.goalkeeperAI.reset();
+        this.ui.reset();
+        this.stateMachine.changeState('PRE_PENAL');
+    }
+
+    bindEventListeners() {
+        // --- CAMBIO CLAVE AQUÍ: Se eliminó el parámetro (e) para que coincida con el emit() de UI.js ---
+        console.log('🔗 Binding event listeners...');
+        this.ui.on('start', () => {
+            console.log('🎮 Start button pressed - initializing audio');
+            console.log('Camera object:', this.camera);
+            this.audio.init(this.camera); // Inicializar audio con la cámara
+            
+            // Activar contexto de audio después de la interacción del usuario
+            console.log('🎵 Activating audio context...');
+            this.audio.activateAudioContext();
+            
+            console.log('Audio init completed, setting timeout for crowd...');
+            setTimeout(() => {
+                console.log('⏰ Timeout triggered - trying to ensure crowd playing');
+                this.audio.ensureMontielReady();
+            }, 1000); // Aumentar el delay para dar más tiempo a cargar el audio
+            this.controls.lock();
+            this.resetScene(); 
+        });
+        
+        this.ui.on('retry', () => {
+            this.resetScene();
+            this.controls.lock();
+        });
+
+        this.input.on('kick', (power) => {
+            if(this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
+                this.stateMachine.changeState('KICK', { power });
+            }
+        });
+
+        this.input.on('test-audio', () => {
+            console.log('Testing audio system...');
+            console.log('Audio status:', this.audio.getAudioStatus());
+            
+            // ¡ACTIVAR AUDIO CONTEXT AHORA!
+            console.log('🔥 ACTIVATING AUDIO CONTEXT WITH T KEY...');
+            this.audio.activateAudioContext();
+            
+            // Probar Montiel inmediatamente
+            setTimeout(() => {
+                console.log('🎙️ Testing Montiel playback...');
+                this.audio.playMontiel();
+            }, 500);
+        });
+
+        this.controls.addEventListener('lock', () => this.ui.showHUD(true));
+        this.controls.addEventListener('unlock', () => this.ui.showHUD(false));
+    }
+
+    update(deltaTime) {
+        if(this.stateMachine.currentState) {
+            this.stateMachine.currentState.update(deltaTime);
+        }
+        
+        if (this.stateMachine.currentState && (this.stateMachine.currentState.name === 'KICK' || this.stateMachine.currentState.name === 'OUTCOME')) {
+            this.camera.lookAt(this.cameraLookTarget);
+        }
+
+        this.renderer.render(this.scene, this.camera);
+    }
+    
+    toPlayerView() {
+        gsap.to(this.camera.position, { x: 0, y: 0, z: 0, duration: 0.5 });
+        this.camera.lookAt(0, 1, -15);
+    }
+
+    toBallFollowView(ball) {
+        const startPos = new THREE.Vector3();
+        this.camera.getWorldPosition(startPos);
+        
+        this.player.remove(this.camera);
+        this.scene.add(this.camera);
+        this.camera.position.copy(startPos);
+
+        this.cameraLookTarget.copy(ball.position);
+
+        gsap.to(this.camera.position, {
+            x: startPos.x, y: startPos.y + 1, z: startPos.z + 2,
+            duration: 1.5
+        });
+        
+        gsap.to(this.cameraLookTarget, {
+            x: () => ball.position.x,
+            y: () => Math.max(ball.position.y, 0.5),
+            z: () => ball.position.z,
+            duration: 3, 
+            ease: "power2.out"
+        });
+    }
+
+    toStadiumView() {
+        gsap.to(this.camera.position, { x: 15, y: 10, z: -5, duration: 1 });
+        gsap.to(this.cameraLookTarget, {
+            x: this.goal.position.x,
+            y: this.goal.position.y + 1,
+            z: this.goal.position.z,
+            duration: 1
+        });
+    }
+
+    onResize() {
+        this.sizes.width = window.innerWidth;
+        this.sizes.height = window.innerHeight;
+        this.camera.aspect = this.sizes.width / this.sizes.height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.sizes.width, this.sizes.height);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    }
+}
+</file>
+
+<file path="src/experience/States.js">
+import * as THREE from 'three';
+import gsap from 'gsap';
+
+const PENALTY_SPOT = new THREE.Vector3(0, 0, 0);
+const PLAYER_AREA_RADIUS = 9; 
+const GRAVITY = 9.8;
+
+class State {
+    constructor(name, manager) {
+        this.name = name;
+        this.manager = manager;
+    }
+    enter(params) {}
+    update(deltaTime) {}
+    exit() {}
+}
+
+class IntroState extends State {
+    enter() { this.manager.ui.showIntro(true); }
+    exit() { this.manager.ui.showIntro(false); }
+}
+
+class PrePenalState extends State {
+    enter() {
+        console.log('Entering PRE_PENAL state');
+        this.manager.audio.fade('heartbeat', 0.5, 2);
+        this.manager.input.setMovementEnabled(true);
+        console.log('Movement enabled:', this.manager.input.movementEnabled);
+    }
+    update(deltaTime) {
+        const moveSpeed = this.manager.input.keys.shift ? 6.0 : 3.0;
+        const moveDirection = new THREE.Vector3();
+
+        if (this.manager.input.keys.w) moveDirection.z -= 1;
+        if (this.manager.input.keys.s) moveDirection.z += 1;
+        if (this.manager.input.keys.a) moveDirection.x -= 1;
+        if (this.manager.input.keys.d) moveDirection.x += 1;
+
+        if (moveDirection.length() > 0) {
+            moveDirection.normalize().multiplyScalar(moveSpeed * deltaTime);
+            const yRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, this.manager.camera.rotation.y, 0));
+            moveDirection.applyQuaternion(yRotation);
+            
+            const nextPosition = this.manager.player.position.clone().add(moveDirection);
+            
+            if (nextPosition.distanceTo(PENALTY_SPOT) < PLAYER_AREA_RADIUS) {
+                 this.manager.player.position.add(moveDirection);
+            }
+        }
+        
+        const playerPos2D = new THREE.Vector2(this.manager.player.position.x, this.manager.player.position.z);
+        const ballPos2D = new THREE.Vector2(this.manager.ball.position.x, this.manager.ball.position.z);
+        
+        if (playerPos2D.distanceTo(ballPos2D) < 2.5) {
+            this.manager.stateMachine.changeState('AIMING');
+        }
+    }
+    exit() { this.manager.input.setMovementEnabled(false); }
+}
+
+class AimingState extends State {
+    update(deltaTime) {
+        const profileSpeed = 1.0;
+        if (this.manager.input.keys.a) this.manager.player.position.x -= profileSpeed * deltaTime;
+        if (this.manager.input.keys.d) this.manager.player.position.x += profileSpeed * deltaTime;
+        
+        this.manager.player.position.x = THREE.MathUtils.clamp(this.manager.player.position.x, -1.5, 1.5);
+        this.manager.ui.updatePowerBar(this.manager.input.power);
+    }
+}
+
+class KickState extends State {
+    constructor(name, manager) {
+        super(name, manager);
+        this.hasCheckedOutcome = false;
+    }
+
+    enter(params) {
+        this.hasCheckedOutcome = false;
+        
+        // ¡MONTIEL CUANDO SE PATEE!
+        console.log('🎙️ About to play Montiel...');
+        this.manager.audio.playMontiel();
+        
+        this.manager.ui.showHUD(false);
+        this.manager.input.power = 0; 
+
+        const pressure = this.manager.ui.getPressure();
+        const shotData = this.manager.shotModel.calculateTrajectory(
+            this.manager.camera.rotation, params.power, pressure
+        );
+        
+        this.manager.ball.userData.velocity = shotData.initialVelocity;
+        this.manager.ball.userData.targetPoint = shotData.targetPoint;
+
+        this.manager.toBallFollowView(this.manager.ball);
+        this.manager.goalkeeperAI.reactToShot(shotData.targetPoint);
+        
+        gsap.to(this.manager.camera.position, { z: this.manager.camera.position.z - 0.2, yoyo: true, repeat: 1, duration: 0.1 });
+    }
+
+    update(deltaTime) {
+        if (!this.manager.ball.userData.velocity) return;
+
+        this.manager.ball.position.add(this.manager.ball.userData.velocity.clone().multiplyScalar(deltaTime));
+        this.manager.ball.userData.velocity.y -= GRAVITY * deltaTime;
+        
+        // Evitar que la pelota traspase el suelo
+        if (this.manager.ball.position.y < 0.1) {
+            this.manager.ball.position.y = 0.1;
+            this.manager.ball.userData.velocity.y = 0; // Detener movimiento vertical
+        }
+        
+        const GOAL_LINE_Z = -15; 
+        if (this.manager.ball.position.z <= GOAL_LINE_Z && !this.hasCheckedOutcome) {
+            this.checkOutcome();
+        }
+    }
+
+    checkOutcome() {
+        this.hasCheckedOutcome = true;
+        const ballPos = this.manager.ball.position;
+
+        // --- DIMENSIONES CORREGIDAS: Ajustadas al modelo 3D escalado (3x) ---
+        // Aumentando considerablemente las dimensiones para que coincidan con el modelo visual
+        const goalWidth = 20.0;  // Ancho de la portería (aún más generoso)
+        const goalHeight = 8.0;  // Alto de la portería (aún más generoso)
+
+        if (this.manager.goalkeeperAI.checkSave(ballPos)) {
+            this.manager.stateMachine.changeState('OUTCOME', { result: 'save' });
+        
+        } else if (Math.abs(ballPos.x) > goalWidth / 2 || ballPos.y > goalHeight || ballPos.y < 0) {
+            this.manager.stateMachine.changeState('OUTCOME', { result: 'post' });
+
+        } else {
+            this.manager.stateMachine.changeState('OUTCOME', { result: 'goal' });
+        }
+    }
+    
+    exit() {
+        if(this.manager.ball.userData.velocity) this.manager.ball.userData.velocity.set(0,0,0);
+    }
+}
+
+class OutcomeState extends State {
+    enter(params) {
+        switch(params.result) {
+            case 'goal':
+                // this.manager.audio.play('goal'); // Comentado - archivo no existe
+                this.manager.toStadiumView();
+                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡GOOOOL!" }), 2000);
+                break;
+            case 'save':
+                // this.manager.audio.play('fail'); // Comentado - archivo no existe
+                gsap.to(this.manager.ball.position, { 
+                    x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
+                    z: this.manager.ball.position.z - 1, duration: 1
+                });
+                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡Atajada!" }), 2000);
+                break;
+            case 'post':
+                // this.manager.audio.play('fail'); // Comentado - archivo no existe
+                gsap.to(this.manager.ball.position, { 
+                    x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
+                    z: this.manager.ball.position.z - 1, duration: 1
+                });
+                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡Fallado!" }), 2000);
+                break;
+        }
+    }
+}
+
+class EpilogueState extends State {
+    enter(params) {
+        this.manager.ui.showEpilogue(true, params.title);
+        this.manager.controls.unlock();
+    }
+    exit() { this.manager.ui.showEpilogue(false); }
+}
+
+
+export default class StateMachine {
+    constructor(manager) {
+        this.manager = manager;
+        this.states = {
+            'INTRO': new IntroState('INTRO', manager),
+            'PRE_PENAL': new PrePenalState('PRE_PENAL', manager),
+            'AIMING': new AimingState('AIMING', manager),
+            'KICK': new KickState('KICK', manager),
+            'OUTCOME': new OutcomeState('OUTCOME', manager),
+            'EPILOGUE': new EpilogueState('EPILOGUE', manager),
+        };
+        this.currentState = null;
+    }
+
+    changeState(name, params) {
+        if (this.currentState) this.currentState.exit();
+        this.currentState = this.states[name];
+        this.currentState.enter(params);
+    }
+
+    update(deltaTime) {
+        if (this.currentState) this.currentState.update(deltaTime);
+    }
 }
 </file>
 

@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import gsap from 'gsap';
 
 import Assets from './Assets';
@@ -10,6 +9,7 @@ import AudioManager from './Audio';
 import UIManager from './UI';
 import GoalkeeperAI from './GoalkeeperAI';
 import ShotModel from './ShotModel';
+import GestureManager from './GestureManager';
 
 export default class SceneManager {
     constructor(canvas) {
@@ -27,6 +27,7 @@ export default class SceneManager {
         this.input = new InputManager();
         this.ui = new UIManager();
         this.audio = new AudioManager();
+        this.gesture = new GestureManager();
         this.stateMachine = new StateMachine(this);
         this.shotModel = new ShotModel();
 
@@ -38,6 +39,9 @@ export default class SceneManager {
 
         this.controls = new PointerLockControls(this.camera, document.body);
         this.goalkeeperAI = null;
+        
+        // Estado de control por gestos
+        this.gestureControlActive = false;
 
         this.init();
     }
@@ -47,19 +51,99 @@ export default class SceneManager {
         this.setupScene();
         this.bindEventListeners();
         
-        // Inicializar audio inmediatamente
         console.log('🎵 Initializing audio immediately...');
         this.audio.init(this.camera);
+        
+        // Inicializar gestos
+        this.initGestureControl();
         
         this.assets.on('loaded', () => {
             this.buildWorld();
             console.log('✅ Assets loaded, checking montiel audio...');
-            // Verificar que Montiel esté listo
             setTimeout(() => {
                 this.audio.ensureMontielReady();
             }, 500);
             this.stateMachine.changeState('INTRO');
         });
+    }
+
+    async initGestureControl() {
+        console.log('🖐️ Initializing gesture control...');
+        
+        this.gesture.on('ready', () => {
+            console.log('✅ Gesture control ready!');
+            this.ui.showGestureButton();
+        });
+        
+        this.gesture.on('pointing', (target) => {
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.handleGestureAim(target);
+            }
+        });
+        
+        this.gesture.on('charge-start', () => {
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.input.startGestureCharge();
+            }
+        });
+        
+        this.gesture.on('shoot', () => {
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.input.gestureShoot();
+            }
+        });
+        
+        this.gesture.on('error', (error) => {
+            console.error('❌ Gesture control error:', error);
+            alert('Error al inicializar control por gestos. Verifica que tu cámara esté conectada.');
+        });
+        
+        // No iniciar automáticamente, esperar que el usuario lo active
+    }
+
+    handleGestureAim(target) {
+        // target es {x: 0-1, y: 0-1} desde la cámara
+        // Convertir a rotación de cámara
+        
+        // Invertir X porque la imagen está espejada
+        const normalizedX = 1 - target.x;
+        const normalizedY = target.y;
+        
+        // Mapear a ángulos de cámara
+        // X: -30° a +30° (horizontal)
+        // Y: -20° a +20° (vertical)
+        const targetYaw = (normalizedX - 0.5) * Math.PI / 3; // ±30°
+        const targetPitch = -(normalizedY - 0.5) * Math.PI / 4.5; // ±20°
+        
+        // Aplicar rotación suavemente
+        gsap.to(this.camera.rotation, {
+            y: targetYaw,
+            x: targetPitch,
+            duration: 0.2,
+            ease: 'power2.out'
+        });
+    }
+
+    toggleGestureControl() {
+        if (!this.gestureControlActive) {
+            // Activar control por gestos
+            this.gesture.init().then(success => {
+                if (success) {
+                    this.gestureControlActive = true;
+                    this.gesture.enable();
+                    this.input.enableGestureMode();
+                    this.ui.updateGestureStatus('🖐️ Control por gestos ACTIVADO');
+                    console.log('🖐️ Gesture control activated');
+                }
+            });
+        } else {
+            // Desactivar control por gestos
+            this.gestureControlActive = false;
+            this.gesture.disable();
+            this.input.disableGestureMode();
+            this.ui.updateGestureStatus('⌨️ Control por teclado');
+            console.log('⌨️ Gesture control deactivated');
+        }
     }
 
     setupScene() {
@@ -129,22 +213,17 @@ export default class SceneManager {
     }
 
     bindEventListeners() {
-        // --- CAMBIO CLAVE AQUÍ: Se eliminó el parámetro (e) para que coincida con el emit() de UI.js ---
         console.log('🔗 Binding event listeners...');
+        
         this.ui.on('start', () => {
             console.log('🎮 Start button pressed - initializing audio');
-            console.log('Camera object:', this.camera);
-            this.audio.init(this.camera); // Inicializar audio con la cámara
-            
-            // Activar contexto de audio después de la interacción del usuario
-            console.log('🎵 Activating audio context...');
+            this.audio.init(this.camera);
             this.audio.activateAudioContext();
             
-            console.log('Audio init completed, setting timeout for crowd...');
             setTimeout(() => {
-                console.log('⏰ Timeout triggered - trying to ensure crowd playing');
                 this.audio.ensureMontielReady();
-            }, 1000); // Aumentar el delay para dar más tiempo a cargar el audio
+            }, 1000);
+            
             this.controls.lock();
             this.resetScene(); 
         });
@@ -152,6 +231,10 @@ export default class SceneManager {
         this.ui.on('retry', () => {
             this.resetScene();
             this.controls.lock();
+        });
+        
+        this.ui.on('toggle-gesture', () => {
+            this.toggleGestureControl();
         });
 
         this.input.on('kick', (power) => {
@@ -162,17 +245,15 @@ export default class SceneManager {
 
         this.input.on('test-audio', () => {
             console.log('Testing audio system...');
-            console.log('Audio status:', this.audio.getAudioStatus());
-            
-            // ¡ACTIVAR AUDIO CONTEXT AHORA!
-            console.log('🔥 ACTIVATING AUDIO CONTEXT WITH T KEY...');
             this.audio.activateAudioContext();
             
-            // Probar Montiel inmediatamente
             setTimeout(() => {
-                console.log('🎙️ Testing Montiel playback...');
                 this.audio.playMontiel();
             }, 500);
+        });
+        
+        this.input.on('toggle-gesture', () => {
+            this.toggleGestureControl();
         });
 
         this.controls.addEventListener('lock', () => this.ui.showHUD(true));
