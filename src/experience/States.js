@@ -24,38 +24,44 @@ class PrePenalState extends State {
     enter() {
         console.log('Entering PRE_PENAL state');
         this.manager.audio.fade('heartbeat', 0.5, 2);
-        this.manager.input.setMovementEnabled(true);
-        console.log('Movement enabled:', this.manager.input.movementEnabled);
+        
+        // Auto-mover el jugador hacia la pelota
+        this.autoMoveTowardsBall();
     }
-    update(deltaTime) {
-        const moveSpeed = this.manager.input.keys.shift ? 6.0 : 3.0;
-        const moveDirection = new THREE.Vector3();
-
-        if (this.manager.input.keys.w) moveDirection.z -= 1;
-        if (this.manager.input.keys.s) moveDirection.z += 1;
-        if (this.manager.input.keys.a) moveDirection.x -= 1;
-        if (this.manager.input.keys.d) moveDirection.x += 1;
-
-        if (moveDirection.length() > 0) {
-            moveDirection.normalize().multiplyScalar(moveSpeed * deltaTime);
-            const yRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, this.manager.camera.rotation.y, 0));
-            moveDirection.applyQuaternion(yRotation);
-            
-            const nextPosition = this.manager.player.position.clone().add(moveDirection);
-            
-            if (nextPosition.distanceTo(PENALTY_SPOT) < PLAYER_AREA_RADIUS) {
-                 this.manager.player.position.add(moveDirection);
+    
+    autoMoveTowardsBall() {
+        // Calcular posición cerca de la pelota
+        const ballPosition = this.manager.ball.position;
+        const targetPosition = new THREE.Vector3(
+            ballPosition.x,
+            this.manager.player.position.y, // Mantener altura
+            ballPosition.z + 2.5 // 2.5 unidades detrás de la pelota
+        );
+        
+        console.log('🚀 Auto-moving player to ball...');
+        
+        // Mover suavemente hacia la pelota
+        gsap.to(this.manager.player.position, {
+            x: targetPosition.x,
+            z: targetPosition.z,
+            duration: 2,
+            ease: 'power2.out',
+            onComplete: () => {
+                // Cuando llegue cerca de la pelota, cambiar a AIMING
+                this.manager.stateMachine.changeState('AIMING');
             }
-        }
-        
-        const playerPos2D = new THREE.Vector2(this.manager.player.position.x, this.manager.player.position.z);
-        const ballPos2D = new THREE.Vector2(this.manager.ball.position.x, this.manager.ball.position.z);
-        
-        if (playerPos2D.distanceTo(ballPos2D) < 2.5) {
-            this.manager.stateMachine.changeState('AIMING');
-        }
+        });
     }
-    exit() { this.manager.input.setMovementEnabled(false); }
+    
+    update(deltaTime) {
+        // El estado PRE_PENAL ahora solo espera la animación automática
+        // No necesita lógica de movimiento manual
+    }
+    
+    exit() { 
+        // Detener cualquier animación en curso
+        gsap.killTweensOf(this.manager.player.position);
+    }
 }
 
 class AimingState extends State {

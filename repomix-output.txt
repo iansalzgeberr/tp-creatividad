@@ -1,0 +1,2125 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+index.html
+package.json
+public/vite.svg
+README.md
+src/counter.js
+src/experience/Assets.js
+src/experience/Audio.js
+src/experience/GestureManager.js
+src/experience/GoalkeeperAI.js
+src/experience/Input.js
+src/experience/SceneManager.js
+src/experience/ShotModel.js
+src/experience/States.js
+src/experience/UI.js
+src/javascript.svg
+src/main.js
+src/style.css
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+</file>
+
+<file path="public/vite.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+</file>
+
+<file path="src/counter.js">
+export function setupCounter(element) {
+  let counter = 0
+  const setCounter = (count) => {
+    counter = count
+    element.innerHTML = `count is ${counter}`
+  }
+  element.addEventListener('click', () => setCounter(counter + 1))
+  setCounter(0)
+}
+</file>
+
+<file path="src/experience/Assets.js">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import EventEmitter from 'eventemitter3';
+
+export default class Assets extends EventEmitter {
+    constructor() {
+        super();
+        this.manager = new THREE.LoadingManager(
+            () => this.emit('loaded'),
+            (url, itemsLoaded, itemsTotal) => {
+                const progress = itemsLoaded / itemsTotal;
+                this.emit('progress', progress);
+            }
+        );
+        this.gltfLoader = new GLTFLoader(this.manager);
+        this.items = {};
+
+        this.load();
+    }
+
+    load() {
+        const modelsToLoad = [
+            { name: 'arco', path: '/models/arco.glb' },
+            { name: 'pelota', path: '/models/pelota.glb' },
+            { name: 'jugador', path: '/models/jugador.glb' },
+            { name: 'arquero', path: '/models/arquero.glb' },
+            
+        ];
+
+        for (const model of modelsToLoad) {
+            this.gltfLoader.load(model.path, (gltf) => {
+                this.items[model.name] = gltf;
+            });
+        }
+    }
+
+    get(name) {
+        return this.items[name];
+    }
+}
+</file>
+
+<file path="src/experience/GestureManager.js">
+import EventEmitter from 'eventemitter3';
+
+export default class GestureManager extends EventEmitter {
+    constructor() {
+        super();
+        this.hands = null;
+        this.camera = null;
+        this.videoElement = null;
+        this.canvasElement = null;
+        this.canvasCtx = null;
+        
+        this.isPointing = false;
+        this.isFistClosed = false;
+        this.wasChargingPower = false;
+        
+        this.pointingTarget = { x: 0.5, y: 0.5 };
+        this.enabled = false;
+        
+        // Referencias a las librerías MediaPipe
+        this.MediaPipeHands = null;
+        this.MediaPipeCamera = null;
+        this.MediaPipeDrawing = null;
+    }
+
+    async init() {
+        console.log('🖐️ Initializing GestureManager...');
+        
+        this.createVideoElements();
+        
+        try {
+            // Cargar TODAS las librerías antes de continuar
+            await this.loadAllMediaPipeLibraries();
+            
+            // Iniciar cámara
+            await this.startCamera();
+            
+            console.log('✅ GestureManager initialized successfully');
+            this.emit('ready');
+            return true;
+        } catch (error) {
+            console.error('❌ Error initializing GestureManager:', error);
+            this.emit('error', error);
+            this.updateStatus('❌ Error: ' + error.message);
+            return false;
+        }
+    }
+
+    createVideoElements() {
+        const container = document.createElement('div');
+        container.id = 'gesture-camera-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 320px;
+            height: 240px;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 1000;
+            background: #000;
+        `;
+        
+        this.videoElement = document.createElement('video');
+        this.videoElement.style.cssText = `
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        `;
+        this.videoElement.autoplay = true;
+        this.videoElement.playsInline = true;
+        
+        this.canvasElement = document.createElement('canvas');
+        this.canvasElement.width = 320;
+        this.canvasElement.height = 240;
+        this.canvasElement.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        `;
+        this.canvasCtx = this.canvasElement.getContext('2d');
+        
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'gesture-status';
+        statusDiv.style.cssText = `
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 5px;
+            font-size: 12px;
+            border-radius: 4px;
+            text-align: center;
+        `;
+        statusDiv.textContent = 'Inicializando...';
+        
+        container.appendChild(this.videoElement);
+        container.appendChild(this.canvasElement);
+        container.appendChild(statusDiv);
+        document.body.appendChild(container);
+        
+        this.statusDiv = statusDiv;
+    }
+
+    async loadAllMediaPipeLibraries() {
+        console.log('📦 Loading MediaPipe libraries...');
+        
+        // Cargar scripts en orden y esperar a que cada uno termine
+        await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js');
+        await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+        await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
+        
+        // Verificar que las librerías se cargaron
+        if (typeof window.Hands === 'undefined') {
+            throw new Error('MediaPipe Hands no se cargó correctamente');
+        }
+        if (typeof window.Camera === 'undefined') {
+            throw new Error('MediaPipe Camera no se cargó correctamente');
+        }
+        
+        console.log('✅ All MediaPipe libraries loaded');
+        
+        // Guardar referencias
+        this.MediaPipeHands = window.Hands;
+        this.MediaPipeCamera = window.Camera;
+        this.MediaPipeDrawing = {
+            drawConnectors: window.drawConnectors,
+            drawLandmarks: window.drawLandmarks,
+            HAND_CONNECTIONS: window.HAND_CONNECTIONS
+        };
+        
+        // Ahora inicializar MediaPipe Hands
+        this.initMediaPipe();
+    }
+
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            // Verificar si ya está cargado
+            const existing = document.querySelector(`script[src="${src}"]`);
+            if (existing) {
+                console.log(`Script ya existe: ${src}`);
+                resolve();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => {
+                console.log(`✅ Loaded: ${src}`);
+                resolve();
+            };
+            script.onerror = () => {
+                console.error(`❌ Failed to load: ${src}`);
+                reject(new Error(`Failed to load ${src}`));
+            };
+            document.head.appendChild(script);
+        });
+    }
+
+    initMediaPipe() {
+        console.log('🔧 Initializing MediaPipe Hands...');
+        
+        this.hands = new this.MediaPipeHands({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+            }
+        });
+        
+        this.hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        
+        this.hands.onResults((results) => this.onResults(results));
+        
+        console.log('✅ MediaPipe Hands initialized');
+    }
+
+    async startCamera() {
+        console.log('📹 Starting camera...');
+        this.updateStatus('📹 Solicitando cámara...');
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { 
+                    width: 320, 
+                    height: 240,
+                    facingMode: 'user'
+                }
+            });
+            
+            console.log('✅ Camera permission granted');
+            this.videoElement.srcObject = stream;
+            
+            // Esperar a que el video esté listo
+            await new Promise((resolve) => {
+                this.videoElement.onloadedmetadata = () => {
+                    console.log('✅ Video metadata loaded');
+                    resolve();
+                };
+            });
+            
+            this.camera = new this.MediaPipeCamera(this.videoElement, {
+                onFrame: async () => {
+                    if (this.enabled && this.hands) {
+                        await this.hands.send({ image: this.videoElement });
+                    }
+                },
+                width: 320,
+                height: 240
+            });
+            
+            this.camera.start();
+            console.log('✅ Camera started');
+            this.updateStatus('✅ Cámara activa');
+            
+        } catch (error) {
+            console.error('❌ Camera error:', error);
+            this.updateStatus('❌ No se pudo acceder a la cámara');
+            throw error;
+        }
+    }
+
+    onResults(results) {
+        this.canvasCtx.save();
+        this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+        
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const landmarks = results.multiHandLandmarks[0];
+            
+            // Dibujar conexiones y landmarks
+            if (this.MediaPipeDrawing.drawConnectors) {
+                this.MediaPipeDrawing.drawConnectors(
+                    this.canvasCtx, 
+                    landmarks, 
+                    this.MediaPipeDrawing.HAND_CONNECTIONS, 
+                    {color: '#00FF00', lineWidth: 2}
+                );
+                this.MediaPipeDrawing.drawLandmarks(
+                    this.canvasCtx, 
+                    landmarks, 
+                    {color: '#FF0000', lineWidth: 1, radius: 2}
+                );
+            }
+            
+            const gesture = this.detectGesture(landmarks);
+            this.handleGesture(gesture, landmarks);
+        } else {
+            this.updateStatus('❌ No se detecta mano');
+        }
+        
+        this.canvasCtx.restore();
+    }
+
+    detectGesture(landmarks) {
+        const indexTip = landmarks[8];
+        const indexPip = landmarks[6];
+        const middleTip = landmarks[12];
+        const ringTip = landmarks[16];
+        const pinkyTip = landmarks[20];
+        
+        const indexExtended = indexTip.y < indexPip.y;
+        const middleClosed = middleTip.y > landmarks[10].y;
+        const ringClosed = ringTip.y > landmarks[14].y;
+        const pinkyClosed = pinkyTip.y > landmarks[18].y;
+        
+        const indexClosed = indexTip.y > indexPip.y;
+        const allFingersClosed = indexClosed && middleClosed && ringClosed && pinkyClosed;
+        
+        if (indexExtended && middleClosed && ringClosed && pinkyClosed) {
+            return {
+                type: 'POINTING',
+                target: { x: indexTip.x, y: indexTip.y }
+            };
+        } else if (allFingersClosed) {
+            return { type: 'FIST' };
+        } else {
+            return { type: 'OPEN' };
+        }
+    }
+
+    handleGesture(gesture, landmarks) {
+        const prevFist = this.isFistClosed;
+        
+        this.isPointing = gesture.type === 'POINTING';
+        this.isFistClosed = gesture.type === 'FIST';
+        
+        if (this.isPointing) {
+            this.pointingTarget = gesture.target;
+            this.emit('pointing', this.pointingTarget);
+            this.updateStatus('👆 Apuntando');
+        } else if (this.isFistClosed) {
+            if (!prevFist && !this.wasChargingPower) {
+                this.wasChargingPower = true;
+                this.emit('charge-start');
+                this.updateStatus('👊 Cargando potencia...');
+            } else if (this.wasChargingPower) {
+                this.emit('charging');
+            }
+        } else {
+            if (this.wasChargingPower) {
+                this.wasChargingPower = false;
+                this.emit('shoot');
+                this.updateStatus('⚽ ¡DISPARO!');
+            } else {
+                this.updateStatus('✋ Mano detectada');
+            }
+        }
+    }
+
+    updateStatus(text) {
+        if (this.statusDiv) {
+            this.statusDiv.textContent = text;
+        }
+    }
+
+    enable() {
+        this.enabled = true;
+        console.log('🖐️ Gesture control enabled');
+    }
+
+    disable() {
+        this.enabled = false;
+        this.isPointing = false;
+        this.isFistClosed = false;
+        this.wasChargingPower = false;
+        console.log('🖐️ Gesture control disabled');
+    }
+
+    getPointingTarget() {
+        return this.pointingTarget;
+    }
+
+    destroy() {
+        if (this.camera) {
+            this.camera.stop();
+        }
+        
+        if (this.videoElement && this.videoElement.srcObject) {
+            const tracks = this.videoElement.srcObject.getTracks();
+            tracks.forEach(track => track.stop());
+        }
+        
+        const container = document.getElementById('gesture-camera-container');
+        if (container) {
+            container.remove();
+        }
+    }
+}
+</file>
+
+<file path="src/experience/ShotModel.js">
+import * as THREE from 'three';
+
+export default class ShotModel {
+    constructor() {
+        this.maxPowerSpeed = 50;
+        this.liftFactor = 0.25; // Podemos darle un buen efecto de elevación
+    }
+
+    calculateTrajectory(cameraRotation, power, pressure) {
+        // --- LÓGICA DE FÍSICA COMPLETAMENTE REESCRITA (Y SIMPLIFICADA) ---
+
+        // 1. Definimos la elevación del disparo basado en la potencia.
+        const liftAmount = power * this.liftFactor;
+        
+        // 2. Creamos un vector de dirección base EN ESPACIO DE CÁMARA.
+        // Ya está apuntando hacia adelante (-Z) y hacia arriba (+Y).
+        let direction = new THREE.Vector3(0, liftAmount, -1);
+        
+        // 3. NORMALIZAMOS el vector. ¡Este paso es CRUCIAL!
+        // Asegura que el vector tiene una longitud de 1, para que la velocidad sea consistente.
+        direction.normalize();
+
+        // 4. AHORA rotamos este vector perfecto al espacio del mundo, según donde mira el jugador.
+        direction.applyEuler(cameraRotation);
+        
+        // 5. Añadimos la imprecisión por presión (esto no cambia)
+        const noiseX = (Math.random() - 0.5) * pressure * 0.2;
+        const noiseY = (Math.random() - 0.5) * pressure * 0.15;
+        direction.x += noiseX;
+        direction.y += noiseY;
+        
+        // 6. Calculamos la velocidad final
+        const initialSpeed = this.maxPowerSpeed * power;
+        const initialVelocity = direction.clone().multiplyScalar(initialSpeed);
+
+        // El resto es para la IA, no afecta la trayectoria real
+        const distanceToGoal = 15;
+        const timeToGoal = Math.abs(distanceToGoal / initialVelocity.z);
+        const targetPoint = new THREE.Vector3(
+            initialVelocity.x * timeToGoal,
+            0.1 + initialVelocity.y * timeToGoal - 0.5 * 9.8 * timeToGoal * timeToGoal,
+            -distanceToGoal
+        );
+
+        return { initialVelocity, targetPoint };
+    }
+}
+</file>
+
+<file path="src/javascript.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="32" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 256"><path fill="#F7DF1E" d="M0 0h256v256H0V0Z"></path><path d="m67.312 213.932l19.59-11.856c3.78 6.701 7.218 12.371 15.465 12.371c7.905 0 12.89-3.092 12.89-15.12v-81.798h24.057v82.138c0 24.917-14.606 36.259-35.916 36.259c-19.245 0-30.416-9.967-36.087-21.996m85.07-2.576l19.588-11.341c5.157 8.421 11.859 14.607 23.715 14.607c9.969 0 16.325-4.984 16.325-11.858c0-8.248-6.53-11.17-17.528-15.98l-6.013-2.58c-17.357-7.387-28.87-16.667-28.87-36.257c0-18.044 13.747-31.792 35.228-31.792c15.294 0 26.292 5.328 34.196 19.247l-18.732 12.03c-4.125-7.389-8.591-10.31-15.465-10.31c-7.046 0-11.514 4.468-11.514 10.31c0 7.217 4.468 10.14 14.778 14.608l6.014 2.577c20.45 8.765 31.963 17.7 31.963 37.804c0 21.654-17.012 33.51-39.867 33.51c-22.339 0-36.774-10.654-43.819-24.574"></path></svg>
+</file>
+
+<file path="src/main.js">
+import * as THREE from 'three';
+import SceneManager from './experience/SceneManager';
+
+const canvas = document.querySelector('#webgl');
+const sceneManager = new SceneManager(canvas);
+
+const clock = new THREE.Clock();
+
+function animate() {
+    const deltaTime = clock.getDelta();
+    sceneManager.update(deltaTime);
+    requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener('resize', () => sceneManager.onResize());
+</file>
+
+<file path="package.json">
+{
+  "name": "final-penalty-kick",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.1",
+    "gsap": "^3.13.0",
+    "three": "^0.180.0"
+  }
+}
+</file>
+
+<file path="README.md">
+# Three.js - Penal de la Final del Mundo 🎮🖐️
+
+Este proyecto es una simulación completa de un penal decisivo en una final del mundo, desarrollado con Three.js y Vite. La experiencia incluye movimiento en primera persona, una IA para el arquero, múltiples desenlaces, un arco narrativo y **control por gestos usando MediaPipe**.
+
+## ✨ Novedades: Control por Gestos
+
+¡Ahora puedes jugar usando gestos de mano en tiempo real! El sistema detecta:
+
+- **👆 Dedo índice extendido**: Apunta hacia donde quieres disparar
+- **👊 Puño cerrado**: Comienza a cargar la potencia del tiro
+- **✋ Abrir la mano**: ¡Dispara la pelota!
+
+## Requisitos
+
+- Node.js (v16 o superior)
+- npm
+- **Cámara web** (para control por gestos)
+- Navegador moderno con soporte para MediaPipe
+
+## Instalación y Ejecución
+
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone https://...
+    cd final-penalty-kick
+    ```
+
+2.  **Colocar los assets (OBLIGATORIO):**
+    Descarga los modelos 3D y los archivos de audio y colócalos en la carpeta `public/` siguiendo esta estructura:
+    
+    ```
+    public/
+    ├── models/
+    │   ├── arco.glb
+    │   ├── pelota.glb
+    │   ├── jugador.glb
+    │   └── arquero.glb
+    └── audio/
+        └── montiel.weba (audio del penal)
+    ```
+
+3.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
+
+4.  **Iniciar el servidor de desarrollo:**
+    ```bash
+    npm run dev
+    ```
+    Abre la URL que aparece en la consola (generalmente `http://localhost:5173`).
+
+## 🎮 Controles
+
+### Modo Clásico (Teclado + Mouse)
+
+-   **WASD:** Mover al jugador en la fase de `PRE_PENAL`.
+-   **Mouse:** Apuntar la dirección del tiro.
+-   **A/D:** Perfilar el tiro (movimiento lateral sutil) en la fase de `AIMING`.
+-   **Mantener ESPACIO:** Cargar la barra de fuerza.
+-   **Soltar ESPACIO:** Patear la pelota.
+-   **SHIFT:** Correr en la fase de `PRE_PENAL`.
+-   **G:** Activar/desactivar control por gestos.
+
+### Modo Gestos (Experimental) 🖐️
+
+1. **Activar el modo**: Haz clic en "Activar Control por Gestos" en el panel de opciones
+2. **Permitir acceso a la cámara** cuando el navegador lo solicite
+3. **Posiciona tu mano** frente a la cámara (aparecerá un preview en la esquina superior izquierda)
+4. **Gestos disponibles**:
+   - 👆 **Apuntar**: Extiende solo tu dedo índice (otros dedos cerrados)
+   - 👊 **Cargar**: Cierra el puño completamente
+   - ✋ **Disparar**: Abre la mano después de haber cargado
+
+**Consejos para mejor detección:**
+- Mantén tu mano a 30-50cm de la cámara
+- Asegúrate de tener buena iluminación
+- Fondo simple sin muchas distracciones
+- Haz gestos claros y deliberados
+
+## Opciones en Pantalla
+
+-   **Slider "Presión":** Aumenta la imprecisión del tiro. Un valor más alto hace más difícil anotar.
+-   **Botón "Activar Control por Gestos":** Activa/desactiva el modo de control por gestos con cámara.
+
+## Stack Tecnológico
+
+-   **Motor 3D:** Three.js (r180)
+-   **Bundler:** Vite
+-   **Animación:** GSAP
+-   **Detección de Gestos:** MediaPipe Hands (Google)
+-   **Módulos de Three.js:** `GLTFLoader`, `PointerLockControls`
+-   **Audio:** WebAudio API (gestionada a través de Three.js Audio)
+-   **Eventos:** EventEmitter3
+
+## Estructura del Proyecto
+
+```
+src/
+├── experience/
+│   ├── Assets.js          # Carga de modelos 3D
+│   ├── Audio.js           # Sistema de audio
+│   ├── GoalkeeperAI.js    # IA del arquero
+│   ├── Input.js           # Gestión de controles (teclado + gestos)
+│   ├── GestureManager.js  # 🆕 Detección de gestos con MediaPipe
+│   ├── SceneManager.js    # Coordinador principal
+│   ├── ShotModel.js       # Física del tiro
+│   ├── States.js          # Máquina de estados del juego
+│   └── UI.js              # Interfaz de usuario
+└── main.js                # Punto de entrada
+```
+
+## Arquitectura del Sistema de Gestos
+
+El sistema de gestos utiliza **MediaPipe Hands** para detectar y clasificar gestos en tiempo real:
+
+1. **Captura de Video**: Accede a la cámara web del usuario
+2. **Detección de Landmarks**: MediaPipe identifica 21 puntos clave de la mano
+3. **Clasificación de Gestos**: Algoritmo personalizado interpreta los landmarks
+4. **Emisión de Eventos**: Los gestos detectados disparan eventos que el juego escucha
+5. **Integración con Input Manager**: Los eventos de gestos se integran con los controles tradicionales
+
+## Troubleshooting
+
+### La cámara no funciona
+- Verifica que tu navegador tenga permisos para acceder a la cámara
+- Asegúrate de estar usando HTTPS (o localhost)
+- Revisa la consola del navegador para errores
+
+### Los gestos no se detectan correctamente
+- Mejora la iluminación de tu espacio
+- Acerca o aleja tu mano de la cámara
+- Evita fondos muy ocupados o con muchos colores
+- Asegúrate de que toda tu mano esté visible en el cuadro
+
+### El juego va lento con gestos activados
+- MediaPipe es computacionalmente intensivo
+- Cierra otras pestañas del navegador
+- Considera usar el modo de teclado si tu PC es más antigua
+
+## Futuras Mejoras
+
+- [ ] Calibración personalizada de gestos
+- [ ] Soporte para múltiples gestos personalizados
+- [ ] Feedback visual mejorado para reconocimiento de gestos
+- [ ] Modo de entrenamiento de gestos
+- [ ] Soporte para control de voz adicional
+
+## Créditos
+
+- **Motor 3D**: Three.js
+- **Detección de Gestos**: Google MediaPipe
+- **Audio del penal**: Transmisión original
+
+---
+
+**¡Disfruta del penal más inmersivo de tu vida! ⚽🔥**
+</file>
+
+<file path="src/style.css">
+body, html { 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden; 
+    background: #000; 
+    font-family: 'Helvetica', sans-serif; 
+}
+
+#webgl { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    outline: none; 
+}
+
+#ui-container { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    color: white; 
+    pointer-events: none; 
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    text-align: center;
+    transition: opacity 1s ease;
+}
+
+.overlay.active { 
+    opacity: 1; 
+    pointer-events: all; 
+}
+
+.overlay.hidden { 
+    opacity: 0; 
+    pointer-events: none; 
+}
+
+.overlay h1 { 
+    font-size: 4rem; 
+    margin: 0; 
+}
+
+.overlay h2 { 
+    font-size: 3rem; 
+    text-shadow: 0 0 10px #fff; 
+}
+
+.overlay p { 
+    font-size: 1.5rem; 
+}
+
+.overlay button {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    background: #fff;
+    color: #000;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    pointer-events: all;
+    transition: background 0.3s;
+    border-radius: 5px;
+}
+
+.overlay button:hover { 
+    background: #ccc; 
+}
+
+#hud { 
+    width: 100%; 
+    height: 100%; 
+}
+
+#power-bar-container {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 20px;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid white;
+    padding: 2px;
+    border-radius: 5px;
+}
+
+#power-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #adff2f, #ffff00, #ff4500);
+    border-radius: 3px;
+    transition: width 0.05s;
+}
+
+#reticle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+.controls-info {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    opacity: 0.7;
+    font-size: 14px;
+}
+
+#options-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.8);
+    padding: 15px;
+    border-radius: 8px;
+    pointer-events: all;
+    min-width: 200px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+#options-panel button {
+    pointer-events: all;
+}
+
+#options-panel button:hover {
+    transform: scale(1.02);
+}
+</file>
+
+<file path="index.html">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Penal - Final del Mundo</title>
+    <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+    <canvas id="webgl"></canvas>
+    
+    <div id="ui-container">
+        <!-- Pantalla de INTRO -->
+        <div id="intro-overlay" class="overlay active">
+            <h1>Final del Mundo</h1>
+            <p>Minuto 120. El destino en tus pies.</p>
+            <div style="margin: 20px 0; font-size: 0.9em; opacity: 0.8;">
+                <p><strong>🎮 Controles Clásicos:</strong></p>
+                <p>WASD: Moverse | MOUSE: Apuntar | ESPACIO: Cargar/Disparar</p>
+                <br>
+                <p><strong>🖐️ Control por Gestos (Experimental):</strong></p>
+                <p>👆 Dedo índice: Apuntar | 👊 Puño cerrado: Cargar | ✋ Abrir mano: ¡Disparar!</p>
+                <p style="font-size: 0.8em;">(Activa el modo gestos desde el panel superior derecho)</p>
+            </div>
+            <button id="start-button">Empezar</button>
+        </div>
+
+        <!-- HUD del juego -->
+        <div id="hud" class="hidden">
+            <div id="power-bar-container">
+                <div id="power-bar"></div>
+            </div>
+            <div id="reticle">+</div>
+            <div class="controls-info">
+                <p id="controls-text">WASD: Moverse | MOUSE: Apuntar | ESPACIO: Cargar fuerza</p>
+            </div>
+        </div>
+        
+        <!-- Pantalla de EPILOGUE -->
+        <div id="epilogue-overlay" class="overlay hidden">
+            <h2 id="epilogue-title"></h2>
+            <p id="epilogue-message">Un penal no es solo un disparo, es una historia.</p>
+            <button id="retry-button">Reintentar</button>
+        </div>
+
+        <!-- Panel de Control de Gestos -->
+        <div id="options-panel"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+</file>
+
+<file path="src/experience/Audio.js">
+import * as THREE from 'three';
+import gsap from 'gsap';
+
+export default class AudioManager {
+    constructor() {
+        this.listener = null;
+        this.sounds = {};
+        // Solo Montiel - audio de penal
+        this.audioSources = {
+            montiel: [
+                './audio/montiel.weba',
+                '/audio/montiel.weba',
+                'audio/montiel.weba',
+                './public/audio/montiel.weba',
+                '/public/audio/montiel.weba'
+            ]
+        };
+        
+        // Inicializar audio automáticamente
+        console.log('🎵 AudioManager constructor - auto-initializing...');
+        this.autoInit();
+    }
+
+    autoInit() {
+        try {
+            this.listener = new THREE.AudioListener();
+            console.log('AudioListener created automatically');
+            
+            // Intentar cargar audios inmediatamente
+            Object.entries(this.audioSources).forEach(([name, paths]) => {
+                const sound = new THREE.Audio(this.listener);
+                this.sounds[name] = sound;
+                
+                console.log(`Auto-loading audio: ${name}`);
+                this.tryLoadAudio(name, paths, 0, sound);
+            });
+        } catch (error) {
+            console.error('Error in auto-init:', error);
+        }
+    }
+
+    init(camera = null) {
+        console.log('🎵 AudioManager.init() called');
+        console.log('Camera provided:', !!camera);
+        
+        // La creación del AudioContext debe estar tras un gesto del usuario
+        this.listener = new THREE.AudioListener();
+        console.log('AudioListener created:', this.listener);
+        
+        // Si se proporciona una cámara, añadir el listener a ella
+        if (camera) {
+            camera.add(this.listener);
+            console.log('AudioListener added to camera');
+        }
+        
+        const audioLoader = new THREE.AudioLoader();
+        console.log('AudioLoader created:', audioLoader);
+        console.log('Audio sources to load:', this.audioSources);
+
+        Object.entries(this.audioSources).forEach(([name, paths]) => {
+            const sound = new THREE.Audio(this.listener);
+            this.sounds[name] = sound;
+            
+            console.log(`Attempting to load audio: ${name}`);
+            console.log(`Available paths:`, paths);
+            
+            // Intentar cargar desde la primera ruta
+            this.tryLoadAudio(name, paths, 0, sound);
+        });
+    }
+
+    play(name, loop = false) {
+        const sound = this.sounds[name];
+        if (sound && sound.buffer && !sound.isPlaying) {
+            sound.setLoop(loop);
+            try {
+                sound.play();
+            } catch (error) {
+                console.warn(`Could not play sound: ${name}`, error);
+            }
+        } else if (!sound) {
+            console.warn(`Sound not found: ${name}`);
+        }
+    }
+
+    stop(name) {
+        const sound = this.sounds[name];
+        if (sound && sound.isPlaying) {
+            sound.stop();
+        }
+    }
+
+    fade(name, targetVolume, duration) {
+        const sound = this.sounds[name];
+        if (sound) {
+            gsap.to(sound, { volume: targetVolume, duration: duration });
+        }
+    }
+
+    ensureMontielReady() {
+        const montiel = this.sounds['montiel'];
+        console.log('🔊 Checking montiel audio...', !!montiel, !!montiel?.buffer);
+        
+        if (montiel && montiel.buffer) {
+            console.log('✅ Montiel audio is ready!');
+            return true;
+        } else {
+            console.warn('⚠️ Montiel audio not ready yet');
+            return false;
+        }
+    }
+
+    // Activar audio context después de interacción del usuario
+    activateAudioContext() {
+        const montiel = this.sounds['montiel'];
+        if (montiel && montiel.buffer) {
+            // Reproducir y pausar inmediatamente para activar el contexto
+            try {
+                montiel.setVolume(0); // Volumen 0 para que no se escuche
+                montiel.play();
+                setTimeout(() => {
+                    montiel.stop();
+                    montiel.setVolume(0.8); // Restaurar volumen para uso posterior
+                    console.log('🎵 Audio context activated! Montiel ready to play.');
+                }, 100);
+            } catch (error) {
+                console.error('Error activating audio context:', error);
+            }
+        }
+    }
+
+    playMontiel() {
+        const montiel = this.sounds['montiel'];
+        console.log('🎙️ Attempting to play Montiel...', !!montiel, !!montiel?.buffer);
+        
+        if (montiel && montiel.buffer) {
+            if (montiel.isPlaying) {
+                montiel.stop(); // Detener si ya está sonando
+                console.log('🔄 Stopped previous Montiel playback');
+            }
+            
+            montiel.setVolume(0.8); // Volumen alto para Montiel
+            
+            try {
+                montiel.play();
+                console.log('🎙️ ¡MONTIEL SUENA! Volume:', montiel.volume);
+            } catch (error) {
+                console.error('❌ Error playing Montiel audio:', error);
+                // Intentar después de un pequeño delay
+                setTimeout(() => {
+                    try {
+                        montiel.play();
+                        console.log('🎙️ ¡MONTIEL SUENA EN RETRY!');
+                    } catch (e) {
+                        console.error('❌ Retry failed:', e);
+                    }
+                }, 500);
+            }
+        } else {
+            console.warn('⚠️ Montiel audio not ready yet');
+        }
+    }
+
+    // Método de diagnóstico
+    getAudioStatus() {
+        const status = {};
+        Object.entries(this.sounds).forEach(([name, sound]) => {
+            status[name] = {
+                loaded: !!sound.buffer,
+                playing: sound.isPlaying,
+                volume: sound.volume,
+                context: sound.context?.state || 'unknown'
+            };
+        });
+        console.log('📊 Audio Status Details:', status);
+        return status;
+    }
+
+    tryLoadAudio(name, paths, pathIndex, sound) {
+        if (pathIndex >= paths.length) {
+            console.error(`❌ All paths failed for audio: ${name}`);
+            return;
+        }
+
+        const path = paths[pathIndex];
+        const audioLoader = new THREE.AudioLoader();
+        
+        console.log(`🔄 Trying path ${pathIndex + 1}/${paths.length}: ${path}`);
+        
+        audioLoader.load(path,
+            // Success callback
+            (buffer) => {
+                sound.setBuffer(buffer);
+                sound.setVolume(0.5);
+                
+                if (name === 'crowd') {
+                    sound.setLoop(true);
+                    sound.setVolume(0.3);
+                    console.log('✅ Crowd audio loaded and configured successfully');
+                }
+                console.log(`✅ Audio ${name} loaded successfully from: ${path}`);
+            },
+            // Progress callback
+            (progress) => {
+                if (progress.total > 0) {
+                    const percent = Math.round(progress.loaded / progress.total * 100);
+                    console.log(`⏳ Loading ${name}: ${percent}%`);
+                }
+            },
+            // Error callback
+            (error) => {
+                console.warn(`❌ Failed to load ${name} from: ${path}`);
+                console.log(`Trying next path...`);
+                
+                // Intentar con la siguiente ruta
+                this.tryLoadAudio(name, paths, pathIndex + 1, sound);
+            }
+        );
+    }
+
+    loadAudioWithAlternatePath(name, alternatePath, sound) {
+        const audioLoader = new THREE.AudioLoader();
+        console.log(`🔄 Trying to load ${name} from alternate path: ${alternatePath}`);
+        
+        audioLoader.load(alternatePath,
+            // Success callback
+            (buffer) => {
+                sound.setBuffer(buffer);
+                sound.setVolume(0.5);
+                
+                if (name === 'crowd') {
+                    sound.setLoop(true);
+                    sound.setVolume(0.3);
+                    console.log('✅ Crowd audio loaded successfully from alternate path');
+                }
+                console.log(`✅ Audio ${name} loaded from alternate path`);
+            },
+            // Progress callback
+            (progress) => {
+                if (progress.total > 0) {
+                    const percent = Math.round(progress.loaded / progress.total * 100);
+                    console.log(`⏳ Loading ${name} (alternate): ${percent}%`);
+                }
+            },
+            // Error callback
+            (error) => {
+                console.error(`❌ Failed to load ${name} from alternate path too:`, error);
+                console.log(`❌ Audio ${name} completely failed to load. Check if file exists.`);
+            }
+        );
+    }
+}
+</file>
+
+<file path="src/experience/GoalkeeperAI.js">
+import * as THREE from 'three';
+import gsap from 'gsap';
+
+export default class GoalkeeperAI {
+    constructor(model) {
+        this.model = model;
+        this.initialPos = model.position.clone();
+        this.state = 'IDLE'; // IDLE, ANTICIPATE, DIVE
+        this.reactionTime = 0.2; // Tiempo de reacción balanceado
+
+        // --- CAMBIO CLAVE: Zonas de atajada predefinidas ---
+        // Estas son las "decisiones" que el arquero puede tomar.
+        // Ajustadas para que coincidan con las dimensiones de detección de gol en States.js
+        const goalWidth = 10.0;  // La mitad de 20.0 (goalWidth en States.js)
+        const goalHeight = 4.0;  // La mitad de 8.0 (goalHeight en States.js)
+        this.diveZones = [
+            new THREE.Vector3(-goalWidth, goalHeight, this.initialPos.z), // Arriba izquierda
+            new THREE.Vector3(0, goalHeight, this.initialPos.z),          // Arriba centro
+            new THREE.Vector3(goalWidth, goalHeight, this.initialPos.z),  // Arriba derecha
+            new THREE.Vector3(-goalWidth, 0.5, this.initialPos.z),       // Abajo izquierda
+            new THREE.Vector3(goalWidth, 0.5, this.initialPos.z),        // Abajo derecha
+            new THREE.Vector3(0, 0.5, this.initialPos.z),                // Abajo centro (quédate quieto)
+        ];
+        
+        this.reset();
+    }
+
+    reset() {
+        gsap.killTweensOf(this.model.position);
+        gsap.killTweensOf(this.model.rotation);
+        this.model.position.copy(this.initialPos);
+        this.model.rotation.set(0, 0, 0); 
+        this.state = 'IDLE';
+        this.startIdleAnimation();
+    }
+    
+    startIdleAnimation() {
+        gsap.to(this.model.position, {
+            x: this.initialPos.x + (Math.random() > 0.5 ? 0.3 : -0.3),
+            duration: 1.5 + Math.random(),
+            ease: 'power1.inOut',
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * @param {THREE.Vector3} targetPoint - Punto donde se predice que llegará la pelota
+     */
+    reactToShot(targetPoint) {
+        this.state = 'ANTICIPATE';
+        gsap.killTweensOf(this.model.position); 
+
+        // Mejorar la lógica del arquero: combinar intuición con predicción
+        let diveTarget;
+        
+        // 40% de probabilidad de ir hacia el targetPoint, 60% de adivinar mal
+        if (Math.random() < 0.4 && targetPoint) {
+            // Ir hacia donde realmente va la pelota (con más error)
+            const errorX = (Math.random() - 0.5) * 4; // Error de ±2 unidades (más error)
+            const errorY = (Math.random() - 0.5) * 2; // Error de ±1 unidad (más error)
+            
+            diveTarget = new THREE.Vector3(
+                Math.max(-10, Math.min(10, targetPoint.x + errorX)), // Limitar al ancho del arco
+                Math.max(0.5, Math.min(4, targetPoint.y + errorY)), // Limitar a la altura del arco
+                this.initialPos.z
+            );
+        } else {
+            // Adivinar mal: elegir una zona aleatoria
+            const randomIndex = Math.floor(Math.random() * this.diveZones.length);
+            diveTarget = this.diveZones[randomIndex];
+        }
+        
+        setTimeout(() => this.dive(diveTarget), this.reactionTime * 1000);
+    }
+    
+    dive(target) {
+        this.state = 'DIVE';
+        
+        // Movimiento más rápido y agresivo del arquero
+        gsap.to(this.model.position, {
+            x: target.x,
+            y: target.y,
+            duration: 0.3, // Más rápido
+            ease: 'power3.out' // Easing más agresivo
+        });
+        
+        // Rotación más dramática cuando se tira a los lados
+        if (Math.abs(target.x) > 1 || target.y > 1) {
+            const direction = target.x > this.initialPos.x ? -1 : 1;
+            gsap.to(this.model.rotation, {
+                z: direction * Math.PI / 3, // Rotación más dramática
+                duration: 0.25,
+                ease: 'power3.out'
+            });
+        }
+    }
+    
+    checkSave(ballPosition) {
+        if (this.state !== 'DIVE') return false;
+        
+        // Crear un hitbox más generoso basado en la posición actual del arquero
+        const keeperPos = this.model.position;
+        const saveRadius = 2.0; // Radio de alcance del arquero (reducido un poco)
+        
+        // Verificar si la pelota está dentro del alcance del arquero
+        const distance = new THREE.Vector3(
+            ballPosition.x - keeperPos.x,
+            ballPosition.y - keeperPos.y,
+            ballPosition.z - keeperPos.z
+        ).length();
+        
+        // Factor de suerte más realista para hacer las atajadas menos frecuentes
+        const luckFactor = Math.random() < 0.5; // 50% de probabilidad de atajar si está en rango
+        
+        return distance <= saveRadius && luckFactor;
+    }
+}
+</file>
+
+<file path="src/experience/States.js">
+import * as THREE from 'three';
+import gsap from 'gsap';
+
+const PENALTY_SPOT = new THREE.Vector3(0, 0, 0);
+const PLAYER_AREA_RADIUS = 9; 
+const GRAVITY = 9.8;
+
+class State {
+    constructor(name, manager) {
+        this.name = name;
+        this.manager = manager;
+    }
+    enter(params) {}
+    update(deltaTime) {}
+    exit() {}
+}
+
+class IntroState extends State {
+    enter() { this.manager.ui.showIntro(true); }
+    exit() { this.manager.ui.showIntro(false); }
+}
+
+class PrePenalState extends State {
+    enter() {
+        console.log('Entering PRE_PENAL state');
+        this.manager.audio.fade('heartbeat', 0.5, 2);
+        this.manager.input.setMovementEnabled(true);
+        console.log('Movement enabled:', this.manager.input.movementEnabled);
+    }
+    update(deltaTime) {
+        const moveSpeed = this.manager.input.keys.shift ? 6.0 : 3.0;
+        const moveDirection = new THREE.Vector3();
+
+        if (this.manager.input.keys.w) moveDirection.z -= 1;
+        if (this.manager.input.keys.s) moveDirection.z += 1;
+        if (this.manager.input.keys.a) moveDirection.x -= 1;
+        if (this.manager.input.keys.d) moveDirection.x += 1;
+
+        if (moveDirection.length() > 0) {
+            moveDirection.normalize().multiplyScalar(moveSpeed * deltaTime);
+            const yRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, this.manager.camera.rotation.y, 0));
+            moveDirection.applyQuaternion(yRotation);
+            
+            const nextPosition = this.manager.player.position.clone().add(moveDirection);
+            
+            if (nextPosition.distanceTo(PENALTY_SPOT) < PLAYER_AREA_RADIUS) {
+                 this.manager.player.position.add(moveDirection);
+            }
+        }
+        
+        const playerPos2D = new THREE.Vector2(this.manager.player.position.x, this.manager.player.position.z);
+        const ballPos2D = new THREE.Vector2(this.manager.ball.position.x, this.manager.ball.position.z);
+        
+        if (playerPos2D.distanceTo(ballPos2D) < 2.5) {
+            this.manager.stateMachine.changeState('AIMING');
+        }
+    }
+    exit() { this.manager.input.setMovementEnabled(false); }
+}
+
+class AimingState extends State {
+    update(deltaTime) {
+        const profileSpeed = 1.0;
+        if (this.manager.input.keys.a) this.manager.player.position.x -= profileSpeed * deltaTime;
+        if (this.manager.input.keys.d) this.manager.player.position.x += profileSpeed * deltaTime;
+        
+        this.manager.player.position.x = THREE.MathUtils.clamp(this.manager.player.position.x, -1.5, 1.5);
+        this.manager.ui.updatePowerBar(this.manager.input.power);
+    }
+}
+
+class KickState extends State {
+    constructor(name, manager) {
+        super(name, manager);
+        this.hasCheckedOutcome = false;
+    }
+
+    enter(params) {
+        this.hasCheckedOutcome = false;
+        
+        // ¡MONTIEL CUANDO SE PATEE!
+        console.log('🎙️ About to play Montiel...');
+        this.manager.audio.playMontiel();
+        
+        this.manager.ui.showHUD(false);
+        this.manager.input.power = 0; 
+
+        const pressure = this.manager.ui.getPressure();
+        const shotData = this.manager.shotModel.calculateTrajectory(
+            this.manager.camera.rotation, params.power, pressure
+        );
+        
+        this.manager.ball.userData.velocity = shotData.initialVelocity;
+        this.manager.ball.userData.targetPoint = shotData.targetPoint;
+
+        this.manager.toBallFollowView(this.manager.ball);
+        this.manager.goalkeeperAI.reactToShot(shotData.targetPoint);
+        
+        gsap.to(this.manager.camera.position, { z: this.manager.camera.position.z - 0.2, yoyo: true, repeat: 1, duration: 0.1 });
+    }
+
+    update(deltaTime) {
+        if (!this.manager.ball.userData.velocity) return;
+
+        this.manager.ball.position.add(this.manager.ball.userData.velocity.clone().multiplyScalar(deltaTime));
+        this.manager.ball.userData.velocity.y -= GRAVITY * deltaTime;
+        
+        // Evitar que la pelota traspase el suelo
+        if (this.manager.ball.position.y < 0.1) {
+            this.manager.ball.position.y = 0.1;
+            this.manager.ball.userData.velocity.y = 0; // Detener movimiento vertical
+        }
+        
+        const GOAL_LINE_Z = -15; 
+        if (this.manager.ball.position.z <= GOAL_LINE_Z && !this.hasCheckedOutcome) {
+            this.checkOutcome();
+        }
+    }
+
+    checkOutcome() {
+        this.hasCheckedOutcome = true;
+        const ballPos = this.manager.ball.position;
+
+        // --- DIMENSIONES CORREGIDAS: Ajustadas al modelo 3D escalado (3x) ---
+        // Aumentando considerablemente las dimensiones para que coincidan con el modelo visual
+        const goalWidth = 20.0;  // Ancho de la portería (aún más generoso)
+        const goalHeight = 8.0;  // Alto de la portería (aún más generoso)
+
+        if (this.manager.goalkeeperAI.checkSave(ballPos)) {
+            this.manager.stateMachine.changeState('OUTCOME', { result: 'save' });
+        
+        } else if (Math.abs(ballPos.x) > goalWidth / 2 || ballPos.y > goalHeight || ballPos.y < 0) {
+            this.manager.stateMachine.changeState('OUTCOME', { result: 'post' });
+
+        } else {
+            this.manager.stateMachine.changeState('OUTCOME', { result: 'goal' });
+        }
+    }
+    
+    exit() {
+        if(this.manager.ball.userData.velocity) this.manager.ball.userData.velocity.set(0,0,0);
+    }
+}
+
+class OutcomeState extends State {
+    enter(params) {
+        switch(params.result) {
+            case 'goal':
+                // this.manager.audio.play('goal'); // Comentado - archivo no existe
+                this.manager.toStadiumView();
+                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡GOOOOL!" }), 2000);
+                break;
+            case 'save':
+                // this.manager.audio.play('fail'); // Comentado - archivo no existe
+                gsap.to(this.manager.ball.position, { 
+                    x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
+                    z: this.manager.ball.position.z - 1, duration: 1
+                });
+                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡Atajada!" }), 2000);
+                break;
+            case 'post':
+                // this.manager.audio.play('fail'); // Comentado - archivo no existe
+                gsap.to(this.manager.ball.position, { 
+                    x: this.manager.ball.position.x * 1.1, y: this.manager.ball.position.y * 0.5,
+                    z: this.manager.ball.position.z - 1, duration: 1
+                });
+                setTimeout(() => this.manager.stateMachine.changeState('EPILOGUE', { title: "¡Fallado!" }), 2000);
+                break;
+        }
+    }
+}
+
+class EpilogueState extends State {
+    enter(params) {
+        this.manager.ui.showEpilogue(true, params.title);
+        this.manager.controls.unlock();
+    }
+    exit() { this.manager.ui.showEpilogue(false); }
+}
+
+
+export default class StateMachine {
+    constructor(manager) {
+        this.manager = manager;
+        this.states = {
+            'INTRO': new IntroState('INTRO', manager),
+            'PRE_PENAL': new PrePenalState('PRE_PENAL', manager),
+            'AIMING': new AimingState('AIMING', manager),
+            'KICK': new KickState('KICK', manager),
+            'OUTCOME': new OutcomeState('OUTCOME', manager),
+            'EPILOGUE': new EpilogueState('EPILOGUE', manager),
+        };
+        this.currentState = null;
+    }
+
+    changeState(name, params) {
+        if (this.currentState) this.currentState.exit();
+        this.currentState = this.states[name];
+        this.currentState.enter(params);
+    }
+
+    update(deltaTime) {
+        if (this.currentState) this.currentState.update(deltaTime);
+    }
+}
+</file>
+
+<file path="src/experience/Input.js">
+import EventEmitter from 'eventemitter3';
+import gsap from 'gsap';
+
+export default class InputManager extends EventEmitter {
+    constructor() {
+        super();
+        this.keys = {
+            w: false, a: false, s: false, d: false,
+            shift: false, space: false
+        };
+        this.power = 0;
+        this.charging = false;
+        this.movementEnabled = false;
+        
+        // Control por gestos
+        this.gestureMode = false;
+        this.gestureAimTarget = { x: 0.5, y: 0.5 };
+
+        document.addEventListener('keydown', (e) => this.onKey(e.code, true));
+        document.addEventListener('keyup', (e) => this.onKey(e.code, false));
+    }
+    
+    enableGestureMode() {
+        this.gestureMode = true;
+        console.log('🖐️ Gesture mode enabled');
+    }
+    
+    disableGestureMode() {
+        this.gestureMode = false;
+        console.log('⌨️ Keyboard mode enabled');
+    }
+    
+    isGestureMode() {
+        return this.gestureMode;
+    }
+    
+    updateGestureAim(target) {
+        // target es {x, y} normalizado (0-1)
+        // Convertir a coordenadas útiles para la cámara
+        this.gestureAimTarget = target;
+        this.emit('gesture-aim', target);
+    }
+    
+    startGestureCharge() {
+        if (!this.charging) {
+            this.charging = true;
+            this.power = 0;
+            gsap.to(this, { power: 1, duration: 1.5, ease: 'power1.in' });
+            this.emit('charge-start');
+        }
+    }
+    
+    gestureShoot() {
+        if (this.charging) {
+            this.charging = false;
+            gsap.killTweensOf(this);
+            this.emit('kick', this.power);
+            this.power = 0;
+        }
+    }
+    
+    setMovementEnabled(enabled) {
+        this.movementEnabled = enabled;
+    }
+
+    onKey(code, isPressed) {
+        console.log(`Key Event -> Code: ${code}, Pressed: ${isPressed}, Movement Enabled: ${this.movementEnabled}`);
+
+        switch(code) {
+            case 'KeyW':
+            case 'ArrowUp':
+                if (this.movementEnabled) this.keys.w = isPressed;
+                break;
+            case 'KeyA':
+            case 'ArrowLeft':
+                this.keys.a = isPressed;
+                break;
+            case 'KeyS':
+            case 'ArrowDown':
+                if (this.movementEnabled) this.keys.s = isPressed;
+                break;
+            case 'KeyD':
+            case 'ArrowRight':
+                this.keys.d = isPressed;
+                break;
+            case 'ShiftLeft':
+                this.keys.shift = isPressed;
+                break;
+            case 'KeyT':
+                if (isPressed) {
+                    this.emit('test-audio');
+                }
+                break;
+            case 'KeyG': // Toggle gesture mode
+                if (isPressed) {
+                    this.emit('toggle-gesture');
+                }
+                break;
+            case 'Space':
+                if (!this.gestureMode) { // Solo si no estamos en modo gesture
+                    this.handleSpace(isPressed);
+                }
+                break;
+        }
+    }
+
+    handleSpace(isPressed) {
+        if (isPressed && !this.charging) {
+            this.charging = true;
+            this.power = 0;
+            gsap.to(this, { power: 1, duration: 1.5, ease: 'power1.in' });
+        } else if (!isPressed && this.charging) {
+            this.charging = false;
+            gsap.killTweensOf(this);
+            this.emit('kick', this.power);
+            this.power = 0;
+        }
+    }
+}
+</file>
+
+<file path="src/experience/UI.js">
+import EventEmitter from 'eventemitter3';
+
+export default class UIManager extends EventEmitter {
+    constructor() {
+        super();
+        this.introOverlay = document.getElementById('intro-overlay');
+        this.epilogueOverlay = document.getElementById('epilogue-overlay');
+        this.hud = document.getElementById('hud');
+        this.powerBar = document.getElementById('power-bar');
+        
+        document.getElementById('start-button').addEventListener('click', (e) => {
+            console.log('Start button clicked');
+            this.emit('start');
+            e.target.blur();
+        });
+        
+        document.getElementById('retry-button').addEventListener('click', (e) => {
+            this.emit('retry');
+            e.target.blur();
+        });
+        
+        // Crear botón para activar/desactivar control por gestos
+        this.createGestureToggle();
+    }
+
+    createGestureToggle() {
+        const gestureButton = document.createElement('button');
+        gestureButton.id = 'gesture-toggle-button';
+        gestureButton.textContent = 'Activar Control por Gestos';
+        gestureButton.style.cssText = `
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        `;
+        
+        gestureButton.addEventListener('click', () => {
+            this.emit('toggle-gesture');
+        });
+        
+        gestureButton.addEventListener('mouseenter', () => {
+            gestureButton.style.background = '#45a049';
+        });
+        
+        gestureButton.addEventListener('mouseleave', () => {
+            if (!gestureButton.textContent.includes('Desactivar')) {
+                gestureButton.style.background = '#4CAF50';
+            }
+        });
+        
+        const optionsPanel = document.getElementById('options-panel');
+        optionsPanel.appendChild(gestureButton);
+        
+        // Agregar indicador de estado
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'gesture-status-indicator';
+        statusDiv.style.cssText = `
+            padding: 8px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 5px;
+            font-size: 13px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        `;
+        statusDiv.textContent = 'Control: Teclado';
+        optionsPanel.appendChild(statusDiv);
+        
+        this.gestureButton = gestureButton;
+        this.gestureStatusDiv = statusDiv;
+    }
+
+    updateGestureStatus(text) {
+        if (this.gestureStatusDiv) {
+            this.gestureStatusDiv.textContent = text;
+        }
+        
+        // Actualizar texto y estilo del botón
+        if (this.gestureButton) {
+            if (text.includes('ACTIVADO')) {
+                this.gestureButton.textContent = 'Desactivar Gestos';
+                this.gestureButton.style.background = '#f44336';
+            } else {
+                this.gestureButton.textContent = 'Activar Control por Gestos';
+                this.gestureButton.style.background = '#4CAF50';
+            }
+        }
+    }
+
+    showIntro(visible) {
+        this.introOverlay.classList.toggle('hidden', !visible);
+        this.introOverlay.classList.toggle('active', visible);
+    }
+    
+    showHUD(visible) {
+        this.hud.classList.toggle('hidden', !visible);
+    }
+
+    showEpilogue(visible, title = "") {
+        document.getElementById('epilogue-title').innerText = title;
+        this.epilogueOverlay.classList.toggle('hidden', !visible);
+        this.epilogueOverlay.classList.toggle('active', visible);
+    }
+
+    updatePowerBar(power) {
+        this.powerBar.style.width = `${power * 100}%`;
+    }
+
+    getPressure() {
+        return 0.3; // Valor fijo de presión moderada
+    }
+    
+    reset() {
+        this.showHUD(true);
+        this.showEpilogue(false);
+    }
+}
+</file>
+
+<file path="src/experience/SceneManager.js">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import gsap from 'gsap';
+
+import Assets from './Assets';
+import StateMachine from './States';
+import InputManager from './Input';
+import AudioManager from './Audio';
+import UIManager from './UI';
+import GoalkeeperAI from './GoalkeeperAI';
+import ShotModel from './ShotModel';
+import GestureManager from './GestureManager';
+
+export default class SceneManager {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.sizes = { width: window.innerWidth, height: window.innerHeight };
+        
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, this.sizes.width / this.sizes.height, 0.1, 100);
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+        this.renderer.setSize(this.sizes.width, this.sizes.height);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+
+        this.assets = new Assets();
+        this.input = new InputManager();
+        this.ui = new UIManager();
+        this.audio = new AudioManager();
+        this.gesture = new GestureManager();
+        this.stateMachine = new StateMachine(this);
+        this.shotModel = new ShotModel();
+
+        this.player = new THREE.Group();
+        this.ball = null;
+        this.goalkeeper = null;
+        this.goal = null;
+        this.cameraLookTarget = new THREE.Vector3(); 
+
+        this.controls = new PointerLockControls(this.camera, document.body);
+        this.goalkeeperAI = null;
+        
+        // Estado de control por gestos
+        this.gestureControlActive = false;
+
+        this.init();
+    }
+
+    init() {
+        console.log('🚀 SceneManager init() called');
+        this.setupScene();
+        this.bindEventListeners();
+        
+        console.log('🎵 Initializing audio immediately...');
+        this.audio.init(this.camera);
+        
+        // Inicializar gestos
+        this.initGestureControl();
+        
+        this.assets.on('loaded', () => {
+            this.buildWorld();
+            console.log('✅ Assets loaded, checking montiel audio...');
+            setTimeout(() => {
+                this.audio.ensureMontielReady();
+            }, 500);
+            this.stateMachine.changeState('INTRO');
+        });
+    }
+
+    async initGestureControl() {
+        console.log('🖐️ Initializing gesture control...');
+        
+        this.gesture.on('ready', () => {
+            console.log('✅ Gesture control ready!');
+        });
+        
+        this.gesture.on('pointing', (target) => {
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.handleGestureAim(target);
+            }
+        });
+        
+        this.gesture.on('charge-start', () => {
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.input.startGestureCharge();
+            }
+        });
+        
+        this.gesture.on('shoot', () => {
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.input.gestureShoot();
+            }
+        });
+        
+        this.gesture.on('error', (error) => {
+            console.error('❌ Gesture control error:', error);
+            alert('Error al inicializar control por gestos. Verifica que tu cámara esté conectada.');
+        });
+        
+        // No iniciar automáticamente, esperar que el usuario lo active
+    }
+
+    handleGestureAim(target) {
+        // target es {x: 0-1, y: 0-1} desde la cámara
+        // Convertir a rotación de cámara
+        
+        // Invertir X porque la imagen está espejada
+        const normalizedX = 1 - target.x;
+        const normalizedY = target.y;
+        
+        // Mapear a ángulos de cámara
+        // X: -30° a +30° (horizontal)
+        // Y: -20° a +20° (vertical)
+        const targetYaw = (normalizedX - 0.5) * Math.PI / 3; // ±30°
+        const targetPitch = -(normalizedY - 0.5) * Math.PI / 4.5; // ±20°
+        
+        // Aplicar rotación suavemente
+        gsap.to(this.camera.rotation, {
+            y: targetYaw,
+            x: targetPitch,
+            duration: 0.2,
+            ease: 'power2.out'
+        });
+    }
+
+    toggleGestureControl() {
+        if (!this.gestureControlActive) {
+            // Activar control por gestos
+            this.gesture.init().then(success => {
+                if (success) {
+                    this.gestureControlActive = true;
+                    this.gesture.enable();
+                    this.input.enableGestureMode();
+                    this.ui.updateGestureStatus('🖐️ Control por gestos ACTIVADO');
+                    console.log('🖐️ Gesture control activated');
+                }
+            });
+        } else {
+            // Desactivar control por gestos
+            this.gestureControlActive = false;
+            this.gesture.disable();
+            this.input.disableGestureMode();
+            this.ui.updateGestureStatus('⌨️ Control por teclado');
+            console.log('⌨️ Gesture control deactivated');
+        }
+    }
+
+    setupScene() {
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
+
+        const spotLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI * 0.2, 0.5);
+        spotLight.position.set(0, 15, 0); 
+        spotLight.castShadow = true;
+        this.scene.add(spotLight);
+
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(100, 100),
+            new THREE.MeshStandardMaterial({ color: 0x2d6a2b }) 
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+
+        const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const spotGeometry = new THREE.CircleGeometry(0.1, 32);
+        const penaltySpot = new THREE.Mesh(spotGeometry, lineMaterial);
+        penaltySpot.rotation.x = -Math.PI / 2;
+        penaltySpot.position.y = 0.01; 
+        this.scene.add(penaltySpot);
+    }
+    
+    buildWorld() {
+        const goalModel = this.assets.get('arco');
+        this.goal = goalModel.scene;
+        this.goal.position.set(0, 0, -15);
+        this.goal.scale.set(3, 3, 3);
+        this.scene.add(this.goal);
+
+        const ballModel = this.assets.get('pelota');
+        this.ball = ballModel.scene;
+        this.ball.scale.set(0.1, 0.1, 0.1);
+        this.ball.castShadow = true;
+        this.scene.add(this.ball);
+        
+        const keeperModel = this.assets.get('arquero');
+        this.goalkeeper = keeperModel.scene;
+        this.goalkeeper.position.set(0, 0, -14.8);
+        this.goalkeeper.scale.set(1.5, 1.5, 1.5);
+        this.scene.add(this.goalkeeper);
+        this.goalkeeperAI = new GoalkeeperAI(this.goalkeeper);
+
+        this.player.add(this.camera);
+        this.scene.add(this.player);
+    }
+
+    resetScene() {
+        this.player.position.set(0, 1.7, 8);
+        this.camera.rotation.set(0, 0, 0);
+        
+        if (!this.player.children.includes(this.camera)) this.player.add(this.camera);
+        this.toPlayerView();
+        
+        if (this.ball) {
+            this.ball.position.set(0, 0.1, 0); 
+            if (this.ball.userData.velocity) this.ball.userData.velocity.set(0,0,0);
+        }
+        
+        if (this.goalkeeperAI) this.goalkeeperAI.reset();
+        this.ui.reset();
+        this.stateMachine.changeState('PRE_PENAL');
+    }
+
+    bindEventListeners() {
+        console.log('🔗 Binding event listeners...');
+        
+        this.ui.on('start', () => {
+            console.log('🎮 Start button pressed - initializing audio');
+            this.audio.init(this.camera);
+            this.audio.activateAudioContext();
+            
+            setTimeout(() => {
+                this.audio.ensureMontielReady();
+            }, 1000);
+            
+            this.controls.lock();
+            this.resetScene(); 
+        });
+        
+        this.ui.on('retry', () => {
+            this.resetScene();
+            this.controls.lock();
+        });
+        
+        this.ui.on('toggle-gesture', () => {
+            this.toggleGestureControl();
+        });
+
+        this.input.on('kick', (power) => {
+            if(this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
+                this.stateMachine.changeState('KICK', { power });
+            }
+        });
+
+        this.input.on('test-audio', () => {
+            console.log('Testing audio system...');
+            this.audio.activateAudioContext();
+            
+            setTimeout(() => {
+                this.audio.playMontiel();
+            }, 500);
+        });
+        
+        this.input.on('toggle-gesture', () => {
+            this.toggleGestureControl();
+        });
+
+        this.controls.addEventListener('lock', () => this.ui.showHUD(true));
+        this.controls.addEventListener('unlock', () => this.ui.showHUD(false));
+    }
+
+    update(deltaTime) {
+        if(this.stateMachine.currentState) {
+            this.stateMachine.currentState.update(deltaTime);
+        }
+        
+        if (this.stateMachine.currentState && (this.stateMachine.currentState.name === 'KICK' || this.stateMachine.currentState.name === 'OUTCOME')) {
+            this.camera.lookAt(this.cameraLookTarget);
+        }
+
+        this.renderer.render(this.scene, this.camera);
+    }
+    
+    toPlayerView() {
+        gsap.to(this.camera.position, { x: 0, y: 0, z: 0, duration: 0.5 });
+        this.camera.lookAt(0, 1, -15);
+    }
+
+    toBallFollowView(ball) {
+        const startPos = new THREE.Vector3();
+        this.camera.getWorldPosition(startPos);
+        
+        this.player.remove(this.camera);
+        this.scene.add(this.camera);
+        this.camera.position.copy(startPos);
+
+        this.cameraLookTarget.copy(ball.position);
+
+        gsap.to(this.camera.position, {
+            x: startPos.x, y: startPos.y + 1, z: startPos.z + 2,
+            duration: 1.5
+        });
+        
+        gsap.to(this.cameraLookTarget, {
+            x: () => ball.position.x,
+            y: () => Math.max(ball.position.y, 0.5),
+            z: () => ball.position.z,
+            duration: 3, 
+            ease: "power2.out"
+        });
+    }
+
+    toStadiumView() {
+        gsap.to(this.camera.position, { x: 15, y: 10, z: -5, duration: 1 });
+        gsap.to(this.cameraLookTarget, {
+            x: this.goal.position.x,
+            y: this.goal.position.y + 1,
+            z: this.goal.position.z,
+            duration: 1
+        });
+    }
+
+    onResize() {
+        this.sizes.width = window.innerWidth;
+        this.sizes.height = window.innerHeight;
+        this.camera.aspect = this.sizes.width / this.sizes.height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.sizes.width, this.sizes.height);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    }
+}
+</file>
+
+</files>

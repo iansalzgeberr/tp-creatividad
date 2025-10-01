@@ -123,6 +123,22 @@ export default class SceneManager {
         });
     }
 
+    activateGesturesOnStart() {
+        console.log('🖐️ Auto-activating gesture control on game start...');
+        this.gesture.init().then(success => {
+            if (success) {
+                this.gestureControlActive = true;
+                this.gesture.enable();
+                this.input.enableGestureMode();
+                this.ui.updateGestureStatus('🖐️ Control por gestos ACTIVADO');
+                console.log('✅ Gesture control auto-activated');
+            } else {
+                console.log('❌ Gesture control auto-activation failed, using keyboard');
+                this.ui.updateGestureStatus('⌨️ Control por teclado (gestos fallaron)');
+            }
+        });
+    }
+
     toggleGestureControl() {
         if (!this.gestureControlActive) {
             // Activar control por gestos
@@ -195,7 +211,8 @@ export default class SceneManager {
     }
 
     resetScene() {
-        this.player.position.set(0, 1.7, 8);
+        // Posición inicial más alejada para mostrar mejor el movimiento automático
+        this.player.position.set(0, 1.7, 10);
         this.camera.rotation.set(0, 0, 0);
         
         if (!this.player.children.includes(this.camera)) this.player.add(this.camera);
@@ -215,9 +232,14 @@ export default class SceneManager {
         console.log('🔗 Binding event listeners...');
         
         this.ui.on('start', () => {
-            console.log('🎮 Start button pressed - initializing audio');
+            console.log('🎮 Start button pressed - initializing audio and gestures');
             this.audio.init(this.camera);
             this.audio.activateAudioContext();
+            
+            // Activar automáticamente el control por gestos
+            if (!this.gestureControlActive) {
+                this.activateGesturesOnStart();
+            }
             
             setTimeout(() => {
                 this.audio.ensureMontielReady();
