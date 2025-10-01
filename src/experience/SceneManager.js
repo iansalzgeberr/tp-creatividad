@@ -10,6 +10,7 @@ import UIManager from './UI';
 import GoalkeeperAI from './GoalkeeperAI';
 import ShotModel from './ShotModel';
 import GestureManager from './GestureManager';
+import Stadium from './Stadium';
 
 export default class SceneManager {
     constructor(canvas) {
@@ -39,6 +40,7 @@ export default class SceneManager {
 
         this.controls = new PointerLockControls(this.camera, document.body);
         this.goalkeeperAI = null;
+        this.stadium = null;
         
         // Estado de control por gestos
         this.gestureControlActive = false;
@@ -162,52 +164,157 @@ export default class SceneManager {
     }
 
     setupScene() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // Luz ambiente más intensa para mejor visibilidad del estadio
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
 
-        const spotLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI * 0.2, 0.5);
+        // Luz principal del campo más intensa
+        const spotLight = new THREE.SpotLight(0xffffff, 1.2, 100, Math.PI * 0.2, 0.5);
         spotLight.position.set(0, 15, 0); 
         spotLight.castShadow = true;
         this.scene.add(spotLight);
 
+        // Luces adicionales para iluminar mejor el estadio
+        const stadiumLights = [
+            { pos: [-20, 12, -10], color: 0xffffee, intensity: 0.8 },
+            { pos: [20, 12, -10], color: 0xffffee, intensity: 0.8 },
+            { pos: [-20, 12, 10], color: 0xffffee, intensity: 0.8 },
+            { pos: [20, 12, 10], color: 0xffffee, intensity: 0.8 },
+            { pos: [0, 20, -20], color: 0xffffff, intensity: 1.0 }, // Luz detrás del arco
+            { pos: [0, 8, 15], color: 0xffffff, intensity: 0.6 }    // Luz detrás del jugador
+        ];
+
+        stadiumLights.forEach(lightConfig => {
+            const light = new THREE.DirectionalLight(lightConfig.color, lightConfig.intensity);
+            light.position.set(lightConfig.pos[0], lightConfig.pos[1], lightConfig.pos[2]);
+            light.target.position.set(0, 0, -7); // Apuntar hacia el centro del campo
+            light.castShadow = false; // Sin sombras para mejor rendimiento
+            this.scene.add(light);
+            this.scene.add(light.target);
+        });
+
+        // Luz hemisférica para simular luz del cielo
+        const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x2F4F4F, 0.4);
+        this.scene.add(hemisphereLight);
+
+        // Luz cenital muy intensa para simular reflectores de estadio
+        const topLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        topLight.position.set(0, 30, -10);
+        topLight.target.position.set(0, 0, -7);
+        topLight.castShadow = false;
+        this.scene.add(topLight);
+        this.scene.add(topLight.target);
+
+        // Luces de relleno para eliminar sombras muy marcadas
+        const fillLights = [
+            new THREE.DirectionalLight(0xffffee, 0.3),
+            new THREE.DirectionalLight(0xffffee, 0.3),
+            new THREE.DirectionalLight(0xffffee, 0.3),
+            new THREE.DirectionalLight(0xffffee, 0.3)
+        ];
+
+        fillLights[0].position.set(-15, 20, -5);
+        fillLights[1].position.set(15, 20, -5);
+        fillLights[2].position.set(-15, 20, 5);
+        fillLights[3].position.set(15, 20, 5);
+
+        fillLights.forEach(light => {
+            light.target.position.set(0, 0, -7);
+            this.scene.add(light);
+            this.scene.add(light.target);
+        });
+
+        // Campo de césped mejorado
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(100, 100),
-            new THREE.MeshStandardMaterial({ color: 0x2d6a2b }) 
+            new THREE.MeshStandardMaterial({ 
+                color: 0x2d6a2b,
+                roughness: 0.8,
+                metalness: 0.1
+            }) 
         );
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         this.scene.add(ground);
 
+        // Punto de penal
         const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const spotGeometry = new THREE.CircleGeometry(0.1, 32);
         const penaltySpot = new THREE.Mesh(spotGeometry, lineMaterial);
         penaltySpot.rotation.x = -Math.PI / 2;
         penaltySpot.position.y = 0.01; 
         this.scene.add(penaltySpot);
+
+        // Crear el estadio completo
+        this.stadium = new Stadium(this.scene);
+        this.stadium.createWorldCupFinalAtmosphere();
+        
+        // Optimizar automáticamente para evitar problemas de rendimiento
+        setTimeout(() => {
+            this.stadium.optimizeForPerformance();
+        }, 2000);
+        
+        console.log('🏟️ Estadio creado con ambiente de final del mundo');
     }
     
     buildWorld() {
+        // ELEMENTOS PRINCIPALES DEL JUEGO - MANTENER ALTA CALIDAD
+        console.log('🎯 Construyendo elementos principales del juego con alta calidad...');
+        
+        // Arco - ALTA CALIDAD
         const goalModel = this.assets.get('arco');
         this.goal = goalModel.scene;
         this.goal.position.set(0, 0, -15);
         this.goal.scale.set(3, 3, 3);
+        // Asegurar que el arco tenga sombras y detalles
+        this.goal.traverse(child => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
         this.scene.add(this.goal);
 
+        // Pelota - ALTA CALIDAD
         const ballModel = this.assets.get('pelota');
         this.ball = ballModel.scene;
         this.ball.scale.set(0.1, 0.1, 0.1);
-        this.ball.castShadow = true;
+        // Asegurar que la pelota tenga la mejor calidad visual
+        this.ball.traverse(child => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                // Mantener materiales originales de alta calidad
+                if (child.material) {
+                    child.material.needsUpdate = true;
+                }
+            }
+        });
         this.scene.add(this.ball);
         
+        // Arquero - ALTA CALIDAD
         const keeperModel = this.assets.get('arquero');
         this.goalkeeper = keeperModel.scene;
         this.goalkeeper.position.set(0, 0, -14.8);
         this.goalkeeper.scale.set(1.5, 1.5, 1.5);
+        // Asegurar que el arquero tenga la mejor calidad visual
+        this.goalkeeper.traverse(child => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                // Mantener materiales originales de alta calidad
+                if (child.material) {
+                    child.material.needsUpdate = true;
+                }
+            }
+        });
         this.scene.add(this.goalkeeper);
         this.goalkeeperAI = new GoalkeeperAI(this.goalkeeper);
 
         this.player.add(this.camera);
         this.scene.add(this.player);
+        
+        console.log('✅ Elementos principales del juego construidos con máxima calidad');
     }
 
     resetScene() {
@@ -236,6 +343,11 @@ export default class SceneManager {
             this.audio.init(this.camera);
             this.audio.activateAudioContext();
             
+            // Activar audio ambiente del estadio
+            setTimeout(() => {
+                this.audio.playStadiumAmbient();
+            }, 500);
+            
             // Activar automáticamente el control por gestos
             if (!this.gestureControlActive) {
                 this.activateGesturesOnStart();
@@ -260,6 +372,14 @@ export default class SceneManager {
 
         this.input.on('kick', (power) => {
             if(this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
+                // Intensificar ambiente del estadio en el momento del tiro
+                if (this.stadium) {
+                    this.stadium.intensifyAtmosphere();
+                }
+                
+                // Intensificar audio del estadio
+                this.audio.intensifyStadiumAudio();
+                
                 this.stateMachine.changeState('KICK', { power });
             }
         });

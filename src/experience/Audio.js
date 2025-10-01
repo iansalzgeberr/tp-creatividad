@@ -5,7 +5,7 @@ export default class AudioManager {
     constructor() {
         this.listener = null;
         this.sounds = {};
-        // Solo Montiel - audio de penal
+        // Audio de penal y estadio
         this.audioSources = {
             montiel: [
                 './audio/montiel.weba',
@@ -15,6 +15,10 @@ export default class AudioManager {
                 '/public/audio/montiel.weba'
             ]
         };
+        
+        // Crear sonidos sintéticos para el estadio
+        this.crowdAudio = null;
+        this.ambientAudio = null;
         
         // Inicializar audio automáticamente
         console.log('🎵 AudioManager constructor - auto-initializing...');
@@ -34,6 +38,9 @@ export default class AudioManager {
                 console.log(`Auto-loading audio: ${name}`);
                 this.tryLoadAudio(name, paths, 0, sound);
             });
+            
+            // Crear sonidos sintéticos del estadio
+            this.createSyntheticStadiumAudio();
         } catch (error) {
             console.error('Error in auto-init:', error);
         }
@@ -174,6 +181,119 @@ export default class AudioManager {
         });
         console.log('📊 Audio Status Details:', status);
         return status;
+    }
+
+    createSyntheticStadiumAudio() {
+        if (!this.listener) return;
+        
+        console.log('🎵 Creating synthetic stadium audio...');
+        
+        // Crear audio de multitud usando Web Audio API
+        const audioContext = this.listener.context;
+        
+        if (audioContext) {
+            this.createCrowdNoise(audioContext);
+            this.createAmbientNoise(audioContext);
+        }
+    }
+
+    createCrowdNoise(audioContext) {
+        try {
+            // Crear un buffer para ruido de multitud
+            const bufferSize = audioContext.sampleRate * 2; // 2 segundos
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generar ruido rosa filtrado que simula una multitud
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                const pink = white * (0.02 + 0.98 * Math.sin(i * 0.001)); // Filtro simple
+                data[i] = pink * 0.3; // Volumen moderado
+            }
+            
+            // Crear el audio usando Three.js
+            this.crowdAudio = new THREE.Audio(this.listener);
+            this.crowdAudio.setBuffer(buffer);
+            this.crowdAudio.setLoop(true);
+            this.crowdAudio.setVolume(0.2);
+            
+            console.log('✅ Crowd noise created');
+        } catch (error) {
+            console.error('Error creating crowd noise:', error);
+        }
+    }
+
+    createAmbientNoise(audioContext) {
+        try {
+            // Crear ambiente del estadio (viento, eco, etc.)
+            const bufferSize = audioContext.sampleRate * 3; // 3 segundos
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generar ruido ambiente muy suave
+            for (let i = 0; i < bufferSize; i++) {
+                const ambient = (Math.random() * 2 - 1) * 0.05; // Muy suave
+                const echo = Math.sin(i * 0.0001) * 0.02; // Efecto de eco
+                data[i] = ambient + echo;
+            }
+            
+            this.ambientAudio = new THREE.Audio(this.listener);
+            this.ambientAudio.setBuffer(buffer);
+            this.ambientAudio.setLoop(true);
+            this.ambientAudio.setVolume(0.1);
+            
+            console.log('✅ Ambient noise created');
+        } catch (error) {
+            console.error('Error creating ambient noise:', error);
+        }
+    }
+
+    playStadiumAmbient() {
+        console.log('🏟️ Playing stadium ambient sounds...');
+        
+        if (this.crowdAudio && !this.crowdAudio.isPlaying) {
+            try {
+                this.crowdAudio.play();
+                console.log('✅ Crowd noise playing');
+            } catch (error) {
+                console.error('Error playing crowd noise:', error);
+            }
+        }
+        
+        if (this.ambientAudio && !this.ambientAudio.isPlaying) {
+            try {
+                this.ambientAudio.play();
+                console.log('✅ Ambient noise playing');
+            } catch (error) {
+                console.error('Error playing ambient noise:', error);
+            }
+        }
+    }
+
+    stopStadiumAmbient() {
+        if (this.crowdAudio && this.crowdAudio.isPlaying) {
+            this.crowdAudio.stop();
+        }
+        if (this.ambientAudio && this.ambientAudio.isPlaying) {
+            this.ambientAudio.stop();
+        }
+    }
+
+    intensifyStadiumAudio() {
+        console.log('🔥 Intensifying stadium audio...');
+        
+        if (this.crowdAudio) {
+            gsap.to(this.crowdAudio, {
+                volume: 0.4,
+                duration: 0.5,
+                ease: 'power2.out',
+                yoyo: true,
+                repeat: 3,
+                onComplete: () => {
+                    this.crowdAudio.setVolume(0.2);
+                }
+            });
+        }
     }
 
     tryLoadAudio(name, paths, pathIndex, sound) {

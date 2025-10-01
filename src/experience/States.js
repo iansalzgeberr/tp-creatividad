@@ -65,6 +65,14 @@ class PrePenalState extends State {
 }
 
 class AimingState extends State {
+    enter() {
+        console.log('🎯 Entrando en estado AIMING - Arquero sigue moviéndose');
+        // Notificar al arquero que empiece la fase de apuntado
+        if (this.manager.goalkeeperAI) {
+            this.manager.goalkeeperAI.onAimingStart();
+        }
+    }
+    
     update(deltaTime) {
         const profileSpeed = 1.0;
         if (this.manager.input.keys.a) this.manager.player.position.x -= profileSpeed * deltaTime;
