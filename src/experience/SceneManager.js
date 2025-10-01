@@ -72,7 +72,6 @@ export default class SceneManager {
         
         this.gesture.on('ready', () => {
             console.log('✅ Gesture control ready!');
-            this.ui.showGestureButton();
         });
         
         this.gesture.on('pointing', (target) => {
