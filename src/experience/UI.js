@@ -7,7 +7,6 @@ export default class UIManager extends EventEmitter {
         this.epilogueOverlay = document.getElementById('epilogue-overlay');
         this.hud = document.getElementById('hud');
         this.powerBar = document.getElementById('power-bar');
-        this.pressureSlider = document.getElementById('pressure-slider');
         
         document.getElementById('start-button').addEventListener('click', (e) => {
             console.log('Start button clicked');
@@ -28,10 +27,32 @@ export default class UIManager extends EventEmitter {
         const gestureButton = document.createElement('button');
         gestureButton.id = 'gesture-toggle-button';
         gestureButton.textContent = 'Activar Control por Gestos';
-        gestureButton.style.display = 'none'; // Oculto hasta que el sistema esté listo
+        gestureButton.style.cssText = `
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        `;
         
         gestureButton.addEventListener('click', () => {
             this.emit('toggle-gesture');
+        });
+        
+        gestureButton.addEventListener('mouseenter', () => {
+            gestureButton.style.background = '#45a049';
+        });
+        
+        gestureButton.addEventListener('mouseleave', () => {
+            if (!gestureButton.textContent.includes('Desactivar')) {
+                gestureButton.style.background = '#4CAF50';
+            }
         });
         
         const optionsPanel = document.getElementById('options-panel');
@@ -41,12 +62,12 @@ export default class UIManager extends EventEmitter {
         const statusDiv = document.createElement('div');
         statusDiv.id = 'gesture-status-indicator';
         statusDiv.style.cssText = `
-            margin-top: 10px;
-            padding: 5px;
+            padding: 8px;
             background: rgba(0,0,0,0.7);
-            border-radius: 3px;
-            font-size: 12px;
+            border-radius: 5px;
+            font-size: 13px;
             text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
         `;
         statusDiv.textContent = 'Control: Teclado';
         optionsPanel.appendChild(statusDiv);
@@ -55,23 +76,19 @@ export default class UIManager extends EventEmitter {
         this.gestureStatusDiv = statusDiv;
     }
 
-    showGestureButton() {
-        if (this.gestureButton) {
-            this.gestureButton.style.display = 'block';
-        }
-    }
-
     updateGestureStatus(text) {
         if (this.gestureStatusDiv) {
             this.gestureStatusDiv.textContent = text;
         }
         
-        // Actualizar texto del botón
+        // Actualizar texto y estilo del botón
         if (this.gestureButton) {
             if (text.includes('ACTIVADO')) {
                 this.gestureButton.textContent = 'Desactivar Gestos';
+                this.gestureButton.style.background = '#f44336';
             } else {
                 this.gestureButton.textContent = 'Activar Control por Gestos';
+                this.gestureButton.style.background = '#4CAF50';
             }
         }
     }
@@ -96,7 +113,7 @@ export default class UIManager extends EventEmitter {
     }
 
     getPressure() {
-        return parseFloat(this.pressureSlider.value);
+        return 0.3; // Valor fijo de presión moderada
     }
     
     reset() {
