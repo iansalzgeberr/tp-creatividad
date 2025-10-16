@@ -42,11 +42,9 @@ export default class SceneManager {
         this.goalkeeperAI = null;
         this.stadium = null;
         
-        // Marcador de apuntado en el arco
         this.aimMarker = null;
         this.aimMarkerVisible = false;
         
-        // Estado de control por gestos
         this.gestureControlActive = false;
 
         this.init();
@@ -60,7 +58,6 @@ export default class SceneManager {
         console.log('🎵 Initializing audio immediately...');
         this.audio.init(this.camera);
         
-        // Inicializar gestos
         this.initGestureControl();
         
         this.assets.on('loaded', () => {
@@ -80,147 +77,42 @@ export default class SceneManager {
             console.log('✅ Gesture control ready!');
         });
         
-        this.gesture.on('pointing', (target) => {
-            console.log('🎯 EVENTO POINTING RECIBIDO:', target); // DEBUG
-            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
-                this.handleGestureAim(target);
-            } else {
-                console.log(`⚠️ Pointing ignorado - Activo: ${this.gestureControlActive}, Estado: ${this.stateMachine.currentState?.name}`);
-            }
-        });
-        
-        this.gesture.on('charge-start', () => {
-            console.log('⚡ EVENTO CHARGE-START RECIBIDO'); // DEBUG
-            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
-                this.input.startGestureCharge();
-            } else {
-                console.log(`⚠️ Charge ignorado - Activo: ${this.gestureControlActive}, Estado: ${this.stateMachine.currentState?.name}`);
-            }
-        });
-        
-        this.gesture.on('shoot', () => {
-            console.log('⚽ EVENTO SHOOT RECIBIDO'); // DEBUG
-            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
-                this.hideAimMarker(); // Ocultar marcador al disparar
-                this.input.gestureShoot();
-            } else {
-                console.log(`⚠️ Shoot ignorado - Activo: ${this.gestureControlActive}, Estado: ${this.stateMachine.currentState?.name}`);
-            }
-        });
-        
         this.gesture.on('error', (error) => {
             console.error('❌ Gesture control error:', error);
             alert('Error al inicializar control por gestos. Verifica que tu cámara esté conectada.');
         });
-        
-        // No iniciar automáticamente, esperar que el usuario lo active
     }
-
-    handleGestureAim(target) {
-        // target es {x: 0-1, y: 0-1} desde la cámara
-        // Mostrar el marcador si no está visible
-        if (this.aimMarker && !this.aimMarkerVisible) {
-            this.aimMarker.visible = true;
-            this.aimMarkerVisible = true;
-            console.log('🎯 Marcador de apuntado VISIBLE');
-        }
-        
-        // Convertir a posición en el arco
-        // X: target.x va de 0 (izquierda) a 1 (derecha)
-        // Y: target.y va de 0 (arriba) a 1 (abajo) - necesitamos invertir
-        
-        // Dimensiones del arco (aproximadas)
-        const goalWidth = 7.32;  // Ancho estándar de arco de fútbol
-        const goalHeight = 2.44; // Alto estándar
-        const goalZ = -14.95;    // Posición Z del arco (justo delante)
-        
-        // Mapear target a posición 3D en el arco
-        // Invertir X porque la cámara está espejada
-        const aimX = (1 - target.x - 0.5) * goalWidth * 0.9; // 0.9 para dejar margen
-        const aimY = (1 - target.y) * goalHeight * 0.9 + 0.3; // 0.3 offset desde el suelo
-        
-        // Actualizar posición del marcador con animación suave
-        if (this.aimMarker) {
-            gsap.to(this.aimMarker.position, {
-                x: aimX,
-                y: aimY,
-                z: goalZ,
-                duration: 0.15,
-                ease: 'power2.out'
-            });
-        }
-        
-        // También rotar ligeramente la cámara para feedback visual
-        const targetYaw = (target.x - 0.5) * Math.PI / 6; // ±30° reducido a ±15°
-        const targetPitch = -(target.y - 0.5) * Math.PI / 9; // ±20° reducido a ±10°
-        
-        gsap.to(this.camera.rotation, {
-            y: targetYaw,
-            x: targetPitch,
-            duration: 0.2,
-            ease: 'power2.out'
-        });
-        
-        // Debug: mostrar en consola cada 30 frames
-        if (!this._aimDebugCounter) this._aimDebugCounter = 0;
-        this._aimDebugCounter++;
-        if (this._aimDebugCounter % 30 === 0) {
-            console.log(`🎯 Apuntado: X=${aimX.toFixed(2)}m, Y=${aimY.toFixed(2)}m (Pie: ${target.x.toFixed(2)}, ${target.y.toFixed(2)})`);
-        }
-    }
-
-    activateGesturesOnStart() {
-        console.log('🦶 Auto-activando control con pie (PERMANENTE)...');
-        this.gesture.init().then(success => {
-            if (success) {
-                this.gestureControlActive = true;
-                this.gesture.enable();
-                this.input.enableGestureMode();
-                console.log('✅ Control con pie activado automáticamente');
-            } else {
-                console.log('❌ Control con pie falló, usando teclado de respaldo');
-            }
-        });
-    }
-
-    // Método eliminado - control con pie siempre activo
-    // toggleGestureControl() { ... }
 
     setupScene() {
-        // Luz ambiente más intensa para mejor visibilidad del estadio
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
 
-        // Luz principal del campo más intensa
         const spotLight = new THREE.SpotLight(0xffffff, 1.2, 100, Math.PI * 0.2, 0.5);
         spotLight.position.set(0, 15, 0); 
         spotLight.castShadow = true;
         this.scene.add(spotLight);
 
-        // Luces adicionales para iluminar mejor el estadio
         const stadiumLights = [
             { pos: [-20, 12, -10], color: 0xffffee, intensity: 0.8 },
             { pos: [20, 12, -10], color: 0xffffee, intensity: 0.8 },
             { pos: [-20, 12, 10], color: 0xffffee, intensity: 0.8 },
             { pos: [20, 12, 10], color: 0xffffee, intensity: 0.8 },
-            { pos: [0, 20, -20], color: 0xffffff, intensity: 1.0 }, // Luz detrás del arco
-            { pos: [0, 8, 15], color: 0xffffff, intensity: 0.6 }    // Luz detrás del jugador
+            { pos: [0, 20, -20], color: 0xffffff, intensity: 1.0 },
+            { pos: [0, 8, 15], color: 0xffffff, intensity: 0.6 }
         ];
 
         stadiumLights.forEach(lightConfig => {
             const light = new THREE.DirectionalLight(lightConfig.color, lightConfig.intensity);
             light.position.set(lightConfig.pos[0], lightConfig.pos[1], lightConfig.pos[2]);
-            light.target.position.set(0, 0, -7); // Apuntar hacia el centro del campo
-            light.castShadow = false; // Sin sombras para mejor rendimiento
+            light.target.position.set(0, 0, -7);
+            light.castShadow = false;
             this.scene.add(light);
             this.scene.add(light.target);
         });
 
-        // Luz hemisférica para simular luz del cielo
         const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x2F4F4F, 0.4);
         this.scene.add(hemisphereLight);
 
-        // Luz cenital muy intensa para simular reflectores de estadio
         const topLight = new THREE.DirectionalLight(0xffffff, 1.0);
         topLight.position.set(0, 30, -10);
         topLight.target.position.set(0, 0, -7);
@@ -228,7 +120,6 @@ export default class SceneManager {
         this.scene.add(topLight);
         this.scene.add(topLight.target);
 
-        // Luces de relleno para eliminar sombras muy marcadas
         const fillLights = [
             new THREE.DirectionalLight(0xffffee, 0.3),
             new THREE.DirectionalLight(0xffffee, 0.3),
@@ -247,7 +138,6 @@ export default class SceneManager {
             this.scene.add(light.target);
         });
 
-        // Campo de césped mejorado
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(100, 100),
             new THREE.MeshStandardMaterial({ 
@@ -260,7 +150,6 @@ export default class SceneManager {
         ground.receiveShadow = true;
         this.scene.add(ground);
 
-        // Punto de penal
         const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const spotGeometry = new THREE.CircleGeometry(0.1, 32);
         const penaltySpot = new THREE.Mesh(spotGeometry, lineMaterial);
@@ -268,11 +157,9 @@ export default class SceneManager {
         penaltySpot.position.y = 0.01; 
         this.scene.add(penaltySpot);
 
-        // Crear el estadio completo
         this.stadium = new Stadium(this.scene);
         this.stadium.createWorldCupFinalAtmosphere();
         
-        // Optimizar automáticamente para evitar problemas de rendimiento
         setTimeout(() => {
             this.stadium.optimizeForPerformance();
         }, 2000);
@@ -281,15 +168,12 @@ export default class SceneManager {
     }
     
     buildWorld() {
-        // ELEMENTOS PRINCIPALES DEL JUEGO - MANTENER ALTA CALIDAD
         console.log('🎯 Construyendo elementos principales del juego con alta calidad...');
         
-        // Arco - ALTA CALIDAD
         const goalModel = this.assets.get('arco');
         this.goal = goalModel.scene;
         this.goal.position.set(0, 0, -15);
         this.goal.scale.set(3, 3, 3);
-        // Asegurar que el arco tenga sombras y detalles
         this.goal.traverse(child => {
             if (child.isMesh) {
                 child.castShadow = true;
@@ -298,30 +182,45 @@ export default class SceneManager {
         });
         this.scene.add(this.goal);
 
-        // Pelota - ALTA CALIDAD
         const ballModel = this.assets.get('pelota');
-        this.ball = ballModel.scene;
+        
+        if (!ballModel) {
+            console.error('❌ ERROR: Modelo de pelota no encontrado');
+            const fallbackBall = new THREE.Mesh(
+                new THREE.SphereGeometry(0.1, 32, 32),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0xffffff,
+                    roughness: 0.5,
+                    metalness: 0.1
+                })
+            );
+            this.ball = fallbackBall;
+        } else {
+            this.ball = ballModel.scene;
+        }
+        
         this.ball.scale.set(0.1, 0.1, 0.1);
-        // Asegurar que la pelota tenga la mejor calidad visual
+        this.ball.position.set(0, 0.1, 0);
+        this.ball.userData.velocity = new THREE.Vector3(0, 0, 0);
+        
         this.ball.traverse(child => {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
-                // Mantener materiales originales de alta calidad
                 if (child.material) {
                     child.material.needsUpdate = true;
                 }
             }
         });
-        this.scene.add(this.ball);
         
-        // Arquero ElShenawy - ALTA CALIDAD
+        this.scene.add(this.ball);
+        console.log('⚽ Pelota añadida a la escena');
+        
         const keeperModel = this.assets.get('arquero');
         this.goalkeeper = keeperModel.scene;
         this.goalkeeper.position.set(0, 0, -14.8);
         this.goalkeeper.scale.set(1.5, 1.5, 1.5);
         
-        // Verificar si el modelo tiene animaciones
         this.goalkeeperAnimations = keeperModel.animations || [];
         this.goalkeeperMixer = null;
         
@@ -329,10 +228,8 @@ export default class SceneManager {
             console.log(`🎭 Arquero ElShenawy tiene ${this.goalkeeperAnimations.length} animaciones:`, 
                 this.goalkeeperAnimations.map(anim => anim.name));
             
-            // Crear mixer para las animaciones
             this.goalkeeperMixer = new THREE.AnimationMixer(this.goalkeeper);
             
-            // Preparar clips de animación
             this.goalkeeperClips = {};
             this.goalkeeperAnimations.forEach(animation => {
                 const action = this.goalkeeperMixer.clipAction(animation);
@@ -343,12 +240,10 @@ export default class SceneManager {
             console.log('ℹ️ El arquero ElShenawy no tiene animaciones incluidas');
         }
         
-        // Asegurar que el arquero tenga la mejor calidad visual
         this.goalkeeper.traverse(child => {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
-                // Mantener materiales originales de alta calidad
                 if (child.material) {
                     child.material.needsUpdate = true;
                 }
@@ -357,7 +252,6 @@ export default class SceneManager {
         this.scene.add(this.goalkeeper);
         this.goalkeeperAI = new GoalkeeperAI(this.goalkeeper, this.goalkeeperMixer, this.goalkeeperClips);
 
-        // Crear marcador de apuntado visual en el arco
         this.createAimMarker();
 
         this.player.add(this.camera);
@@ -367,10 +261,8 @@ export default class SceneManager {
     }
 
     createAimMarker() {
-        // Crear un marcador visual brillante para mostrar dónde se apunta
         const markerGroup = new THREE.Group();
         
-        // Círculo exterior brillante
         const outerRing = new THREE.Mesh(
             new THREE.RingGeometry(0.3, 0.35, 32),
             new THREE.MeshBasicMaterial({ 
@@ -381,7 +273,6 @@ export default class SceneManager {
             })
         );
         
-        // Círculo interior semi-transparente
         const innerCircle = new THREE.Mesh(
             new THREE.CircleGeometry(0.3, 32),
             new THREE.MeshBasicMaterial({ 
@@ -392,11 +283,10 @@ export default class SceneManager {
             })
         );
         
-        // Cruz en el centro
         const crossGeometry = new THREE.BufferGeometry();
         const crossVertices = new Float32Array([
-            -0.15, 0, 0,  0.15, 0, 0,  // Línea horizontal
-            0, -0.15, 0,  0, 0.15, 0   // Línea vertical
+            -0.15, 0, 0,  0.15, 0, 0,
+            0, -0.15, 0,  0, 0.15, 0
         ]);
         crossGeometry.setAttribute('position', new THREE.BufferAttribute(crossVertices, 3));
         
@@ -412,14 +302,12 @@ export default class SceneManager {
         markerGroup.add(innerCircle);
         markerGroup.add(crossLines);
         
-        // Posicionar en el centro del arco inicialmente
-        markerGroup.position.set(0, 1.5, -14.95); // Justo delante del arco
+        markerGroup.position.set(0, 1.5, -14.95);
         markerGroup.visible = false;
         
         this.scene.add(markerGroup);
         this.aimMarker = markerGroup;
         
-        // Animación de pulsación
         gsap.to(outerRing.scale, {
             x: 1.2,
             y: 1.2,
@@ -441,41 +329,103 @@ export default class SceneManager {
         }
     }
 
+    showAimMarker() {
+        if (this.aimMarker && !this.aimMarkerVisible) {
+            this.aimMarker.visible = true;
+            this.aimMarkerVisible = true;
+            console.log('🎯 Marcador de apuntado VISIBLE');
+        }
+    }
+
+    handleGestureAim(target) {
+        if (this.aimMarker && !this.aimMarkerVisible) {
+            this.showAimMarker();
+        }
+        
+        const goalWidth = 7.32;
+        const goalHeight = 2.44;
+        const goalZ = -14.95;
+        
+        const aimX = (1 - target.x - 0.5) * goalWidth * 0.9;
+        const aimY = (1 - target.y) * goalHeight * 0.9 + 0.3;
+        
+        if (this.aimMarker) {
+            gsap.to(this.aimMarker.position, {
+                x: aimX,
+                y: aimY,
+                z: goalZ,
+                duration: 0.15,
+                ease: 'power2.out'
+            });
+        }
+        
+        const targetYaw = (target.x - 0.5) * Math.PI / 6;
+        const targetPitch = -(target.y - 0.5) * Math.PI / 9;
+        
+        gsap.to(this.camera.rotation, {
+            y: targetYaw,
+            x: targetPitch,
+            duration: 0.2,
+            ease: 'power2.out'
+        });
+    }
+
+    async activateGesturesOnStart() {
+        console.log('🦶 Auto-activando control con pie (PERMANENTE)...');
+        
+        try {
+            const success = await this.gesture.init();
+            
+            if (success) {
+                this.gestureControlActive = true;
+                this.gesture.enable();
+                console.log('✅ Control con pie activado automáticamente');
+            } else {
+                console.log('❌ Control con pie falló, usando teclado de respaldo');
+            }
+        } catch (error) {
+            console.error('Error activating gesture control:', error);
+        }
+    }
+
     resetScene() {
-        // Posición inicial más alejada para mostrar mejor el movimiento automático
         this.player.position.set(0, 1.7, 10);
         this.camera.rotation.set(0, 0, 0);
         
-        // Ocultar marcador de apuntado
         this.hideAimMarker();
         
         if (!this.player.children.includes(this.camera)) this.player.add(this.camera);
         this.toPlayerView();
         
         if (this.ball) {
-            this.ball.position.set(0, 0.1, 0); 
-            if (this.ball.userData.velocity) this.ball.userData.velocity.set(0,0,0);
+            this.ball.position.set(0, 0.1, 0);
+            this.ball.userData.velocity = new THREE.Vector3(0, 0, 0);
+            console.log('⚽ Pelota reiniciada en posición:', this.ball.position);
+        } else {
+            console.warn('⚠️ ADVERTENCIA: No hay pelota en la escena');
         }
         
         if (this.goalkeeperAI) this.goalkeeperAI.reset();
         this.ui.reset();
+        
+        this.input.power = 0;
+        this.input.charging = false;
+        
         this.stateMachine.changeState('PRE_PENAL');
     }
 
     bindEventListeners() {
-        console.log('🔗 Binding event listeners...');
+        console.log('📡 Binding event listeners...');
         
         this.ui.on('start', () => {
             console.log('🎮 Start button pressed - initializing audio and gestures');
             this.audio.init(this.camera);
             this.audio.activateAudioContext();
             
-            // Activar audio ambiente del estadio
             setTimeout(() => {
                 this.audio.playStadiumAmbient();
             }, 500);
             
-            // Activar automáticamente el control por gestos
             if (!this.gestureControlActive) {
                 this.activateGesturesOnStart();
             }
@@ -495,12 +445,10 @@ export default class SceneManager {
 
         this.input.on('kick', (power) => {
             if(this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
-                // Intensificar ambiente del estadio en el momento del tiro
                 if (this.stadium) {
                     this.stadium.intensifyAtmosphere();
                 }
                 
-                // Intensificar audio del estadio
                 this.audio.intensifyStadiumAudio();
                 
                 this.stateMachine.changeState('KICK', { power });
@@ -515,9 +463,66 @@ export default class SceneManager {
                 this.audio.playMontiel();
             }, 500);
         });
+
+        // LISTENERS PARA KICK GESTURE MANAGER
+        this.gesture.on('pointing', (target) => {
+            console.log('🎯 EVENTO POINTING DEL GESTO:', target);
+            
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.handleGestureAim(target);
+            }
+        });
         
-        this.input.on('toggle-gesture', () => {
-            this.toggleGestureControl();
+        this.gesture.on('charge-start', () => {
+            console.log('⚡ EVENTO CHARGE-START DEL GESTO');
+            
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                if (!this.input.charging) {
+                    this.input.charging = true;
+                    this.input.power = 0;
+                    gsap.to(this.input, { 
+                        power: 1, 
+                        duration: 1.5, 
+                        ease: 'power1.in',
+                        onUpdate: () => {
+                            this.ui.updatePowerBar(this.input.power);
+                        }
+                    });
+                }
+            }
+        });
+        
+        this.gesture.on('charging', (power) => {
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.input.power = power;
+                this.ui.updatePowerBar(power * 100);
+            }
+        });
+        
+        this.gesture.on('shoot', (shotData) => {
+            console.log('⚽ EVENTO SHOOT DEL GESTO:', shotData);
+            
+            if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                gsap.killTweensOf(this.input);
+                
+                const kickPower = shotData.power || this.input.power;
+                
+                console.log(`⚽ Disparando con potencia: ${(kickPower * 100).toFixed(0)}%`);
+                
+                this.hideAimMarker();
+                this.input.charging = false;
+                this.input.power = 0;
+                
+                if (this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
+                    if (this.stadium) {
+                        this.stadium.intensifyAtmosphere();
+                    }
+                    
+                    this.audio.intensifyStadiumAudio();
+                    
+                    this.stateMachine.changeState('KICK', { power: kickPower });
+                }
+            }
         });
 
         this.controls.addEventListener('lock', () => this.ui.showHUD(true));
@@ -529,7 +534,6 @@ export default class SceneManager {
             this.stateMachine.currentState.update(deltaTime);
         }
         
-        // Actualizar animaciones del arquero ElShenawy si existen
         if (this.goalkeeperMixer) {
             this.goalkeeperMixer.update(deltaTime);
         }
