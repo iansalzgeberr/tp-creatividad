@@ -129,6 +129,11 @@ export default class GoalkeeperAI {
             maxZ: this.initialPos.z   
         };
         
+        // Sistema de huesos para poses realistas
+        this.bones = {};
+        this.initialBoneRotations = {};
+        this._findBones();
+        
         this.reset();
     }
 
@@ -266,6 +271,321 @@ export default class GoalkeeperAI {
         return null;
     }
 
+    // ========== SISTEMA DE MANIPULACIÓN DE HUESOS PARA POSES REALISTAS ==========
+    
+    _findBones() {
+        console.log('🦴 Buscando huesos en el esqueleto del arquero...');
+        
+        // Nombres comunes de huesos en modelos humanoides
+        const boneNames = {
+            spine: ['spine', 'torso', 'chest', 'upper_body'],
+            leftShoulder: ['leftshoulder', 'shoulder.l', 'l_shoulder', 'arm_l', 'leftarm'],
+            rightShoulder: ['rightshoulder', 'shoulder.r', 'r_shoulder', 'arm_r', 'rightarm'],
+            leftArm: ['leftarm', 'arm.l', 'l_arm', 'upperarm.l', 'leftupperarm'],
+            rightArm: ['rightarm', 'arm.r', 'r_arm', 'upperarm.r', 'rightupperarm'],
+            leftForearm: ['leftforearm', 'forearm.l', 'l_forearm', 'lowerarm.l'],
+            rightForearm: ['rightforearm', 'forearm.r', 'r_forearm', 'lowerarm.r'],
+            leftHand: ['lefthand', 'hand.l', 'l_hand'],
+            rightHand: ['righthand', 'hand.r', 'r_hand'],
+            hips: ['hips', 'pelvis', 'hip', 'lower_body'],
+            leftLeg: ['leftupperleg', 'leftthigh', 'leg.l', 'l_leg', 'thigh.l'],
+            rightLeg: ['rightupperleg', 'rightthigh', 'leg.r', 'r_leg', 'thigh.r'],
+            neck: ['neck', 'head']
+        };
+        
+        this.model.traverse((child) => {
+            if (child.isBone || child.type === 'Bone') {
+                const boneName = child.name.toLowerCase();
+                
+                // Buscar coincidencias para cada tipo de hueso
+                for (const [key, patterns] of Object.entries(boneNames)) {
+                    for (const pattern of patterns) {
+                        if (boneName.includes(pattern)) {
+                            if (!this.bones[key]) { // Solo asignar el primero encontrado
+                                this.bones[key] = child;
+                                // Guardar rotación inicial para reset
+                                this.initialBoneRotations[key] = {
+                                    x: child.rotation.x,
+                                    y: child.rotation.y,
+                                    z: child.rotation.z
+                                };
+                                console.log(`  ✅ Encontrado ${key}: ${child.name}`);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+        
+        const foundCount = Object.keys(this.bones).length;
+        console.log(`🦴 Se encontraron ${foundCount} huesos clave para manipulación`);
+        
+        if (foundCount === 0) {
+            console.log('⚠️ No se encontraron huesos - El modelo podría no tener esqueleto o usar nombres no estándar');
+        }
+    }
+    
+    _resetBonePoses() {
+        // Restaurar todas las rotaciones de huesos a su estado inicial
+        for (const [key, bone] of Object.entries(this.bones)) {
+            if (this.initialBoneRotations[key]) {
+                const initial = this.initialBoneRotations[key];
+                gsap.set(bone.rotation, { x: initial.x, y: initial.y, z: initial.z });
+            }
+        }
+    }
+    
+    _applyDivePose(direction = 'right', intensity = 1.0) {
+        // Generar pose de zambullida realista manipulando huesos
+        const dirMult = direction === 'right' ? 1 : -1;
+        
+        console.log(`🦴 Aplicando pose de zambullida ${direction} (intensidad: ${intensity})`);
+        
+        // Torso: inclinarse hacia el lado del tiro
+        if (this.bones.spine) {
+            gsap.to(this.bones.spine.rotation, {
+                z: dirMult * 0.6 * intensity, // Inclinación lateral pronunciada
+                x: 0.3 * intensity, // Ligera inclinación hacia adelante
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Brazo del lado del tiro: extender hacia la pelota
+        const targetArm = direction === 'right' ? this.bones.rightArm : this.bones.leftArm;
+        const targetShoulder = direction === 'right' ? this.bones.rightShoulder : this.bones.leftShoulder;
+        const targetForearm = direction === 'right' ? this.bones.rightForearm : this.bones.leftForearm;
+        const targetHand = direction === 'right' ? this.bones.rightHand : this.bones.leftHand;
+        
+        if (targetShoulder) {
+            gsap.to(targetShoulder.rotation, {
+                z: dirMult * 1.2 * intensity, // Levantar brazo
+                x: 0.5 * intensity, // Hacia adelante
+                duration: 0.25,
+                ease: 'power2.out'
+            });
+        }
+        
+        if (targetArm) {
+            gsap.to(targetArm.rotation, {
+                z: dirMult * 0.8 * intensity,
+                x: -0.3 * intensity,
+                duration: 0.25,
+                ease: 'power2.out'
+            });
+        }
+        
+        if (targetForearm) {
+            gsap.to(targetForearm.rotation, {
+                z: dirMult * 0.4 * intensity, // Extender antebrazo
+                duration: 0.25,
+                ease: 'power2.out'
+            });
+        }
+        
+        if (targetHand) {
+            gsap.to(targetHand.rotation, {
+                x: 0.3 * intensity, // Abrir mano
+                duration: 0.2,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Brazo opuesto: balance natural
+        const otherArm = direction === 'right' ? this.bones.leftArm : this.bones.rightArm;
+        const otherShoulder = direction === 'right' ? this.bones.leftShoulder : this.bones.rightShoulder;
+        
+        if (otherShoulder) {
+            gsap.to(otherShoulder.rotation, {
+                z: dirMult * -0.5 * intensity, // Bajar brazo opuesto
+                x: -0.3 * intensity,
+                duration: 0.25,
+                ease: 'power2.out'
+            });
+        }
+        
+        if (otherArm) {
+            gsap.to(otherArm.rotation, {
+                z: dirMult * -0.3 * intensity,
+                duration: 0.25,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Piernas: preparar impulso
+        if (this.bones.hips) {
+            gsap.to(this.bones.hips.rotation, {
+                z: dirMult * 0.2 * intensity,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        const targetLeg = direction === 'right' ? this.bones.rightLeg : this.bones.leftLeg;
+        const otherLeg = direction === 'right' ? this.bones.leftLeg : this.bones.rightLeg;
+        
+        if (targetLeg) {
+            gsap.to(targetLeg.rotation, {
+                x: 0.4 * intensity, // Flexionar pierna del lado del tiro
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        if (otherLeg) {
+            gsap.to(otherLeg.rotation, {
+                x: -0.2 * intensity, // Extender pierna opuesta (impulso)
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Cuello: mirar hacia la pelota
+        if (this.bones.neck) {
+            gsap.to(this.bones.neck.rotation, {
+                y: dirMult * 0.3 * intensity,
+                x: -0.2 * intensity,
+                duration: 0.2,
+                ease: 'power2.out'
+            });
+        }
+    }
+    
+    _applyReadyPose() {
+        // Pose de arquero listo: brazos ligeramente abiertos, rodillas flexionadas
+        console.log('🦴 Aplicando pose de listo');
+        
+        if (this.bones.leftShoulder) {
+            gsap.to(this.bones.leftShoulder.rotation, {
+                z: 0.5, // Brazos ligeramente levantados
+                x: 0.3,
+                duration: 0.4,
+                ease: 'power2.inOut'
+            });
+        }
+        
+        if (this.bones.rightShoulder) {
+            gsap.to(this.bones.rightShoulder.rotation, {
+                z: -0.5,
+                x: 0.3,
+                duration: 0.4,
+                ease: 'power2.inOut'
+            });
+        }
+        
+        if (this.bones.leftArm) {
+            gsap.to(this.bones.leftArm.rotation, {
+                z: 0.3,
+                duration: 0.4,
+                ease: 'power2.inOut'
+            });
+        }
+        
+        if (this.bones.rightArm) {
+            gsap.to(this.bones.rightArm.rotation, {
+                z: -0.3,
+                duration: 0.4,
+                ease: 'power2.inOut'
+            });
+        }
+        
+        if (this.bones.spine) {
+            gsap.to(this.bones.spine.rotation, {
+                x: 0.2, // Ligera inclinación hacia adelante
+                duration: 0.4,
+                ease: 'power2.inOut'
+            });
+        }
+        
+        if (this.bones.leftLeg) {
+            gsap.to(this.bones.leftLeg.rotation, {
+                x: 0.1, // Rodillas ligeramente flexionadas
+                duration: 0.4,
+                ease: 'power2.inOut'
+            });
+        }
+        
+        if (this.bones.rightLeg) {
+            gsap.to(this.bones.rightLeg.rotation, {
+                x: 0.1,
+                duration: 0.4,
+                ease: 'power2.inOut'
+            });
+        }
+    }
+    
+    _applyStretchPose(direction = 'right', reachHigh = false) {
+        // Pose de estiramiento para alcanzar pelotas altas o a los lados
+        const dirMult = direction === 'right' ? 1 : -1;
+        
+        console.log(`🦴 Aplicando pose de estiramiento ${direction}${reachHigh ? ' (alto)' : ''}`);
+        
+        if (this.bones.spine) {
+            gsap.to(this.bones.spine.rotation, {
+                z: dirMult * 0.4,
+                x: reachHigh ? -0.2 : 0.1, // Arquear hacia atrás si es alto
+                duration: 0.35,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Brazo del lado target: extender completamente hacia arriba
+        const targetArm = direction === 'right' ? this.bones.rightArm : this.bones.leftArm;
+        const targetShoulder = direction === 'right' ? this.bones.rightShoulder : this.bones.leftShoulder;
+        const targetForearm = direction === 'right' ? this.bones.rightForearm : this.bones.leftForearm;
+        
+        if (targetShoulder) {
+            gsap.to(targetShoulder.rotation, {
+                z: dirMult * (reachHigh ? 1.5 : 1.0), // Brazo completamente extendido
+                x: reachHigh ? 0.8 : 0.4,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        if (targetArm) {
+            gsap.to(targetArm.rotation, {
+                z: dirMult * 0.5,
+                x: reachHigh ? -0.5 : -0.2,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        if (targetForearm) {
+            gsap.to(targetForearm.rotation, {
+                z: dirMult * 0.2,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Brazo opuesto: extender también pero menos
+        const otherShoulder = direction === 'right' ? this.bones.leftShoulder : this.bones.rightShoulder;
+        
+        if (otherShoulder) {
+            gsap.to(otherShoulder.rotation, {
+                z: dirMult * -0.6,
+                x: 0.3,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
+        
+        // Pierna del lado target: levantar ligeramente
+        const targetLeg = direction === 'right' ? this.bones.rightLeg : this.bones.leftLeg;
+        
+        if (targetLeg) {
+            gsap.to(targetLeg.rotation, {
+                x: 0.3,
+                y: dirMult * 0.2,
+                duration: 0.35,
+                ease: 'power2.out'
+            });
+        }
+    }
+
     reset() {
         console.log('🔄 Reseteando arquero...');
         
@@ -275,6 +595,9 @@ export default class GoalkeeperAI {
         this.model.rotation.set(0, 0, 0);
         this.state = 'IDLE';
         this.reactionTime = 0.2 + Math.random() * 0.15;
+        
+        // Resetear poses de huesos a posición inicial
+        this._resetBonePoses();
         
         // Generar nuevas habilidades para variabilidad
         this.skills = {
@@ -602,6 +925,20 @@ export default class GoalkeeperAI {
         // Detener cualquier animación activa
         this.stopAnimation();
         
+        // Resetear poses de huesos gradualmente
+        for (const [key, bone] of Object.entries(this.bones)) {
+            if (this.initialBoneRotations[key]) {
+                const initial = this.initialBoneRotations[key];
+                gsap.to(bone.rotation, {
+                    x: initial.x,
+                    y: initial.y,
+                    z: initial.z,
+                    duration: 1.0,
+                    ease: 'power2.inOut'
+                });
+            }
+        }
+        
         // Animación suave de vuelta a la posición inicial
         gsap.to(this.model.position, {
             x: this.initialPos.x,
@@ -628,16 +965,21 @@ export default class GoalkeeperAI {
     
     stayReady() {
         this.state = 'READY';
-        console.log('💪 Arquero se queda en posición - Sin rotaciones complicadas');
+        console.log('💪 Arquero se queda en posición - Aplicando pose de listo');
         
         // Intentar animación primero
-        if (!this.playAnimation('ready') && !this.playAnimation('idle')) {
-            // Si no hay animaciones, usar movimiento por código
+        const hasAnimation = this.playAnimation('ready') || this.playAnimation('idle');
+        
+        if (!hasAnimation) {
+            // Si no hay animaciones, usar movimiento por código CON poses de huesos
             gsap.to(this.model.position, {
                 y: this.initialPos.y - 0.1, // Agacharse ligeramente
                 duration: 0.3,
                 ease: 'power2.out'
             });
+            
+            // Aplicar pose de arquero listo
+            this._applyReadyPose();
         }
         
         // Mantener rotación neutral
@@ -653,17 +995,23 @@ export default class GoalkeeperAI {
         console.log(`👟 Paso lateral hacia ${direction} - Distancia: ${stepSize.toFixed(2)}`);
         
         // Intentar animación de paso lateral primero
-        if (!this.playAnimation(`step_${direction}`) && !this.playAnimation('step')) {
-            // Si no hay animaciones, usar movimiento por código
+        const hasAnimation = this.playAnimation(`step_${direction}`) || this.playAnimation('step');
+        
+        if (!hasAnimation) {
+            // Si no hay animaciones, usar movimiento por código CON poses de huesos
             gsap.to(this.model.position, {
                 x: this.model.position.x + stepSize * directionMultiplier,
                 y: this.initialPos.y - 0.05,
                 duration: 0.3,
                 ease: 'power2.out'
             });
+            
+            // Aplicar pose de estiramiento moderado
+            const reachHigh = targetPoint.y > 1.2;
+            this._applyStretchPose(direction, reachHigh);
         }
         
-        // SIN rotaciones - mantener neutral
+        // Mantener rotación del modelo neutral
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
     }
     
@@ -679,17 +1027,23 @@ export default class GoalkeeperAI {
         console.log(`🤸‍♂️ Zambullida hacia ${direction} - X:${diveX.toFixed(2)} Y:${diveY.toFixed(2)}`);
         
         // Intentar animación de zambullida primero
-        if (!this.playDiveAnimation(direction) && !this.playAnimation('dive')) {
-            // Si no hay animaciones, usar movimiento por código
+        const hasAnimation = this.playDiveAnimation(direction) || this.playAnimation('dive');
+        
+        if (!hasAnimation) {
+            // Si no hay animaciones, usar movimiento por código CON poses de huesos
             gsap.to(this.model.position, {
                 x: this.model.position.x + diveX,
                 y: diveY,
                 duration: 0.4,
                 ease: 'power2.out'
             });
+            
+            // Aplicar pose de zambullida realista con huesos
+            const intensity = Math.min(1.0, Math.abs(targetPoint.x) * 0.8);
+            this._applyDivePose(direction, intensity);
         }
         
-        // SIN rotaciones complicadas - solo mantener neutral
+        // Mantener rotación del modelo neutral (los huesos hacen el trabajo)
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
     }
     
@@ -701,17 +1055,22 @@ export default class GoalkeeperAI {
         console.log(`💔 Intento desesperado hacia ${direction}`);
         
         // Intentar animación desesperada primero
-        if (!this.playAnimation('desperate') && !this.playDiveAnimation(direction)) {
-            // Si no hay animaciones, usar movimiento por código
+        const hasAnimation = this.playAnimation('desperate') || this.playDiveAnimation(direction);
+        
+        if (!hasAnimation) {
+            // Si no hay animaciones, usar movimiento por código CON poses de huesos
             gsap.to(this.model.position, {
                 x: this.model.position.x + directionMultiplier * 1.5,
                 y: this.initialPos.y + 0.3,
                 duration: 0.5,
                 ease: 'power2.out'
             });
+            
+            // Aplicar pose de zambullida extrema (intensidad máxima)
+            this._applyDivePose(direction, 1.2); // Intensidad > 1.0 para movimiento exagerado
         }
         
-        // SIN rotaciones - mantener neutral
+        // Mantener rotación del modelo neutral
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
     }
     
