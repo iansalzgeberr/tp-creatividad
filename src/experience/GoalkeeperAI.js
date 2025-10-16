@@ -109,10 +109,13 @@ export default class GoalkeeperAI {
             reach: 0.7 + Math.random() * 0.2        // 0.7-0.9 (alcance)
         };
         
-        // Log de animaciones disponibles
+        // Log de animaciones disponibles y construcción de índice para matching flexible
         if (this.mixer && Object.keys(this.clips).length > 0) {
-            console.log('🎭 GoalkeeperAI ElShenawy: Animaciones disponibles:', Object.keys(this.clips));
+            this.availableClipNames = Object.keys(this.clips);
+            console.log('🎭 GoalkeeperAI ElShenawy: Animaciones disponibles:', this.availableClipNames);
+            this._buildClipIndex();
         } else {
+            this.availableClipNames = [];
             console.log('ℹ️ GoalkeeperAI ElShenawy: Sin animaciones, usando movimiento por código');
         }
         
@@ -131,8 +134,15 @@ export default class GoalkeeperAI {
 
     // Métodos para manejar animaciones del modelo ElShenawy
     playAnimation(animationName, options = {}) {
-        if (!this.mixer || !this.clips[animationName]) {
-            console.log(`⚠️ Animación '${animationName}' no disponible`);
+        if (!this.mixer || Object.keys(this.clips).length === 0) {
+            console.log(`⚠️ Animación '${animationName}' no disponible (no hay mixer/clips)`);
+            return false;
+        }
+
+        // Resolver nombre a una clave de clip existente (case-insensitive / parcial)
+        const resolvedKey = this._resolveClipKey(animationName);
+        if (!resolvedKey) {
+            console.log(`⚠️ No se encontró clip para '${animationName}'`);
             return false;
         }
 
@@ -140,11 +150,12 @@ export default class GoalkeeperAI {
 
         // Detener animación actual si existe
         if (this.currentAction) {
-            this.currentAction.fadeOut(fadeOut);
+            try { this.currentAction.fadeOut(fadeOut); } catch (e) { /* ignore */ }
         }
 
         // Reproducir nueva animación
-        this.currentAction = this.clips[animationName];
+        const action = this.clips[resolvedKey];
+        this.currentAction = action;
         this.currentAction
             .reset()
             .setEffectiveTimeScale(timeScale)
@@ -171,9 +182,19 @@ export default class GoalkeeperAI {
             'keeper_stand', 'neutral', 'default'
         ];
         for (const animName of idleAnimations) {
-            if (this.playAnimation(animName, { loop: true })) {
+            const key = this._resolveClipKey(animName);
+            if (key) {
+                this.playAnimation(key, { loop: true });
                 return true;
             }
+        }
+
+        // fallback: if there are clips, use the first available looping
+        if (this.availableClipNames && this.availableClipNames.length > 0) {
+            const first = this.availableClipNames[0];
+            console.log('ℹ️ No se encontró idle por nombre; usando primer clip disponible:', first);
+            this.playAnimation(first, { loop: true });
+            return true;
         }
         return false;
     }
@@ -186,7 +207,9 @@ export default class GoalkeeperAI {
             'keeper_save', 'reaction'
         ];
         for (const animName of diveAnimations) {
-            if (this.playAnimation(animName, { loop: false, timeScale: 1.2 })) {
+            const key = this._resolveClipKey(animName);
+            if (key) {
+                this.playAnimation(key, { loop: false, timeScale: 1.2 });
                 return true;
             }
         }
@@ -200,11 +223,47 @@ export default class GoalkeeperAI {
             'keeper_ready', 'anticipate', 'tense'
         ];
         for (const animName of reactionAnimations) {
-            if (this.playAnimation(animName, { loop: false })) {
+            const key = this._resolveClipKey(animName);
+            if (key) {
+                this.playAnimation(key, { loop: false });
                 return true;
             }
         }
         return false;
+    }
+
+    // Construye un índice simple (lowercase) para búsqueda flexible
+    _buildClipIndex() {
+        this._clipIndex = this.availableClipNames.map(n => n.toLowerCase());
+    }
+
+    // Resuelve un nombre a una clave de clip existente usando coincidencias flexibles
+    _resolveClipKey(nameOrKey) {
+        if (!nameOrKey) return null;
+        // Si ya es una clave exacta
+        if (this.clips[nameOrKey]) return nameOrKey;
+
+        const name = String(nameOrKey).toLowerCase();
+
+        // Exact match lowercase
+        for (const key of Object.keys(this.clips)) {
+            if (key.toLowerCase() === name) return key;
+        }
+
+        // Substring match
+        for (const key of Object.keys(this.clips)) {
+            if (key.toLowerCase().includes(name)) return key;
+        }
+
+        // Try splitting name and matching any part
+        const parts = name.split(/[_\-\s]/).filter(Boolean);
+        for (const part of parts) {
+            for (const key of Object.keys(this.clips)) {
+                if (key.toLowerCase().includes(part)) return key;
+            }
+        }
+
+        return null;
     }
 
     reset() {
