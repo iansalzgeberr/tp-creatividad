@@ -15,17 +15,15 @@
         <div id="intro-overlay" class="overlay active">
             <h1>Final del Mundo</h1>
             <p>Minuto 120. El destino en tus pies.</p>
-            <div style="margin: 20px 0; font-size: 0.9em; opacity: 0.8;">
-                <p><strong>🚀 ¡Juego Automático!</strong></p>
-                <p>Tu jugador se moverá automáticamente hacia la pelota</p>
-                <br>
-                <p><strong>🖐️ Control por Gestos:</strong></p>
-                <p>👆 Dedo índice: Apuntar | 👊 Puño cerrado: Cargar | ✋ Abrir mano: ¡Disparar!</p>
-                <p style="font-size: 0.8em;">Se activará automáticamente al empezar</p>
-                <br>
-                <p><strong>⌨️ Respaldo:</strong> ESPACIO para cargar/disparar si los gestos fallan</p>
+            <button id="start-button">▶️ Empezar</button>
+            <div style="margin: 20px 0; font-size: 0.85em; opacity: 0.8; max-width: 700px;">
+                <p><strong>🦶 Control con Pie (Automático):</strong></p>
+                <p>La cámara detectará tu pierna automáticamente</p>
+                <p>🎯 <strong>Mueve pie izq/der</strong> → Apuntar</p>
+                <p>⬆️ <strong>Levanta pierna</strong> → Cargar potencia (más alto = más potencia)</p>
+                <p>⬇️⚡ <strong>Baja rápido</strong> → ¡DISPARO!</p>
+                <p style="font-size: 0.9em; margin-top: 10px;">⌨️ <strong>Teclado de respaldo:</strong> ESPACIO para cargar/disparar</p>
             </div>
-            <button id="start-button">Empezar</button>
         </div>
 
         <!-- HUD del juego -->
@@ -35,7 +33,7 @@
             </div>
             <div id="reticle">+</div>
             <div class="controls-info">
-                <p id="controls-text">🖐️ Gestos: Apuntar con dedo | Puño: Cargar | Mano abierta: Disparar | RESPALDO: ESPACIO</p>
+                <p id="controls-text">🎯 Mueve pie izq/der → Apuntar | ⬆️ Levanta pierna → Cargar | ⬇️⚡ Baja rápido → DISPARAR</p>
             </div>
         </div>
         
@@ -45,9 +43,6 @@
             <p id="epilogue-message">Un penal no es solo un disparo, es una historia.</p>
             <button id="retry-button">Reintentar</button>
         </div>
-
-        <!-- Panel de Control de Gestos -->
-        <div id="options-panel"></div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

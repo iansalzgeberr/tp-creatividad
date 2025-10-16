@@ -59,7 +59,6 @@ class OrganicMovement {
     
     static animateAlongPath(object, path, duration, rotation = null) {
         const points = path.getPoints(50); // 50 puntos para suavidad
-        let currentIndex = 0;
         
         const timeline = gsap.timeline();
         
@@ -94,8 +93,11 @@ class OrganicMovement {
 }
 
 export default class GoalkeeperAI {
-    constructor(model) {
+    constructor(model, mixer = null, clips = null) {
         this.model = model;
+        this.mixer = mixer;
+        this.clips = clips || {};
+        this.currentAction = null;
         this.initialPos = model.position.clone();
         this.state = 'IDLE';
         this.reactionTime = 0.2 + Math.random() * 0.15; // 0.2-0.35s más realista
@@ -106,6 +108,13 @@ export default class GoalkeeperAI {
             positioning: 0.5 + Math.random() * 0.4, // 0.5-0.9 (posicionamiento)
             reach: 0.7 + Math.random() * 0.2        // 0.7-0.9 (alcance)
         };
+        
+        // Log de animaciones disponibles
+        if (this.mixer && Object.keys(this.clips).length > 0) {
+            console.log('🎭 GoalkeeperAI ElShenawy: Animaciones disponibles:', Object.keys(this.clips));
+        } else {
+            console.log('ℹ️ GoalkeeperAI ElShenawy: Sin animaciones, usando movimiento por código');
+        }
         
         // Límites del arco ULTRA AMPLIOS para movimiento extremo
         this.goalLimits = {
@@ -118,6 +127,84 @@ export default class GoalkeeperAI {
         };
         
         this.reset();
+    }
+
+    // Métodos para manejar animaciones del modelo ElShenawy
+    playAnimation(animationName, options = {}) {
+        if (!this.mixer || !this.clips[animationName]) {
+            console.log(`⚠️ Animación '${animationName}' no disponible`);
+            return false;
+        }
+
+        const { loop = false, fadeIn = 0.2, fadeOut = 0.2, timeScale = 1.0 } = options;
+
+        // Detener animación actual si existe
+        if (this.currentAction) {
+            this.currentAction.fadeOut(fadeOut);
+        }
+
+        // Reproducir nueva animación
+        this.currentAction = this.clips[animationName];
+        this.currentAction
+            .reset()
+            .setEffectiveTimeScale(timeScale)
+            .setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce)
+            .fadeIn(fadeIn)
+            .play();
+
+        console.log(`🎭 Reproduciendo animación ElShenawy: ${animationName}`);
+        return true;
+    }
+
+    stopAnimation() {
+        if (this.currentAction) {
+            this.currentAction.fadeOut(0.2);
+            this.currentAction = null;
+        }
+    }
+
+    // Intentar usar animaciones específicas para acciones del arquero
+    playIdleAnimation() {
+        // Buscar animaciones de idle/reposo comunes en modelos de arqueros
+        const idleAnimations = [
+            'idle', 'stand', 'wait', 'ready', 'goalkeeper_idle', 
+            'keeper_stand', 'neutral', 'default'
+        ];
+        for (const animName of idleAnimations) {
+            if (this.playAnimation(animName, { loop: true })) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    playDiveAnimation(direction = 'center') {
+        // Buscar animaciones de zambullida según dirección
+        const diveAnimations = [
+            `dive_${direction}`, `dive${direction}`, `save_${direction}`,
+            'dive', 'save', 'catch', 'block', 'jump', 'goalkeeper_dive',
+            'keeper_save', 'reaction'
+        ];
+        for (const animName of diveAnimations) {
+            if (this.playAnimation(animName, { loop: false, timeScale: 1.2 })) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    playReactionAnimation() {
+        // Buscar animaciones de reacción y preparación
+        const reactionAnimations = [
+            'react', 'alert', 'focus', 'prepare', 'goalkeeper_react',
+            'keeper_ready', 'anticipate', 'tense'
+        ];
+        for (const animName of reactionAnimations) {
+            if (this.playAnimation(animName, { loop: false })) {
+                return true;
+            }
+        }
+        return false;
     }
 
     reset() {
@@ -152,8 +239,11 @@ export default class GoalkeeperAI {
     }
     
     startIdleAnimation() {
-        // Movimiento realista del arquero en la línea de gol
-        this.startGoalLineMovement();
+        // Intentar usar animación idle del modelo ElShenawy primero
+        if (!this.playIdleAnimation()) {
+            // Si no hay animaciones, usar movimiento por código
+            this.startGoalLineMovement();
+        }
     }
     
     startGoalLineMovement() {
@@ -251,8 +341,11 @@ export default class GoalkeeperAI {
         console.log(`🥅 ¡PENAL PATEADO! Arquero reaccionando desde posición: ${this.model.position.x.toFixed(2)}`);
         console.log(`🛑 Movimiento en línea detenido - Habilidades: R${(this.skills.reflexes*100).toFixed(0)} P${(this.skills.positioning*100).toFixed(0)} A${(this.skills.reach*100).toFixed(0)}`);
         
-        // Reacción inmediata - tensión corporal
-        this.showTension();
+        // Intentar animación de reacción primero
+        if (!this.playReactionAnimation()) {
+            // Si no hay animaciones, usar movimiento por código
+            this.showTension();
+        }
         
         // Luego decidir la acción según habilidades
         setTimeout(() => this.makeRealisticDecision(targetPoint), this.reactionTime * 1000);
@@ -320,7 +413,7 @@ export default class GoalkeeperAI {
             repeat: -1
         });
         
-        console.log('� Rango de movimiento: -4.5 a +4.5 unidades (ULTRA EXTREMO)');
+        console.log('🎯 Rango de movimiento: -4.5 a +4.5 unidades (ULTRA EXTREMO)');
         console.log('⚡ Velocidad aumentada: 0.6-1.5s por movimiento');
     }
     
@@ -328,6 +421,9 @@ export default class GoalkeeperAI {
         // Detener TODAS las animaciones de movimiento previas
         gsap.killTweensOf(this.model.position);
         gsap.killTweensOf(this.model.rotation);
+        
+        // Detener animaciones del modelo si existen
+        this.stopAnimation();
         
         console.log('🚫 Movimiento en línea de arco detenido');
         
@@ -398,7 +494,7 @@ export default class GoalkeeperAI {
         
         console.log(`🧠 Evaluando: Dist=${distanceFromCenter.toFixed(1)} Alt=${shotHeight.toFixed(1)} Alcance=${canReach} Tiempo=${hasTime}`);
         
-        // Decisiones más humanas
+        // Decisiones más humanas con intentos de usar animaciones
         if (distanceFromCenter < 0.8 && shotHeight < 1.0) {
             // Tiro muy central - quedarse firme
             this.stayReady();
@@ -444,6 +540,9 @@ export default class GoalkeeperAI {
         gsap.killTweensOf(this.model.position);
         gsap.killTweensOf(this.model.rotation);
         
+        // Detener cualquier animación activa
+        this.stopAnimation();
+        
         // Animación suave de vuelta a la posición inicial
         gsap.to(this.model.position, {
             x: this.initialPos.x,
@@ -472,12 +571,15 @@ export default class GoalkeeperAI {
         this.state = 'READY';
         console.log('💪 Arquero se queda en posición - Sin rotaciones complicadas');
         
-        // Solo movimiento de posición, SIN rotaciones
-        gsap.to(this.model.position, {
-            y: this.initialPos.y - 0.1, // Agacharse ligeramente
-            duration: 0.3,
-            ease: 'power2.out'
-        });
+        // Intentar animación primero
+        if (!this.playAnimation('ready') && !this.playAnimation('idle')) {
+            // Si no hay animaciones, usar movimiento por código
+            gsap.to(this.model.position, {
+                y: this.initialPos.y - 0.1, // Agacharse ligeramente
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
         
         // Mantener rotación neutral
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
@@ -485,18 +587,22 @@ export default class GoalkeeperAI {
     
     takeSmartStep(targetPoint) {
         this.state = 'STEPPING';
-        const direction = targetPoint.x > 0 ? 1 : -1;
+        const direction = targetPoint.x > 0 ? 'right' : 'left';
         const stepSize = Math.min(1.0, Math.abs(targetPoint.x) * 0.7) * this.skills.positioning;
+        const directionMultiplier = targetPoint.x > 0 ? 1 : -1;
         
-        console.log(`👟 Paso lateral hacia ${direction > 0 ? 'derecha' : 'izquierda'} - Distancia: ${stepSize.toFixed(2)}`);
+        console.log(`👟 Paso lateral hacia ${direction} - Distancia: ${stepSize.toFixed(2)}`);
         
-        // Movimiento SIMPLE sin curvas complicadas
-        gsap.to(this.model.position, {
-            x: this.model.position.x + stepSize * direction, // Desde posición actual
-            y: this.initialPos.y - 0.05,
-            duration: 0.3,
-            ease: 'power2.out'
-        });
+        // Intentar animación de paso lateral primero
+        if (!this.playAnimation(`step_${direction}`) && !this.playAnimation('step')) {
+            // Si no hay animaciones, usar movimiento por código
+            gsap.to(this.model.position, {
+                x: this.model.position.x + stepSize * directionMultiplier,
+                y: this.initialPos.y - 0.05,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        }
         
         // SIN rotaciones - mantener neutral
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
@@ -505,20 +611,24 @@ export default class GoalkeeperAI {
     diveSmart(targetPoint) {
         this.state = 'DIVING';
         const reachFactor = this.skills.reach;
-        const direction = targetPoint.x > 0 ? 1 : -1;
+        const direction = targetPoint.x > 0 ? 'right' : 'left';
+        const directionMultiplier = targetPoint.x > 0 ? 1 : -1;
         
-        const diveX = Math.min(this.goalLimits.maxX, Math.abs(targetPoint.x) * reachFactor) * direction;
+        const diveX = Math.min(this.goalLimits.maxX, Math.abs(targetPoint.x) * reachFactor) * directionMultiplier;
         const diveY = Math.min(this.goalLimits.maxY, Math.max(0.2, targetPoint.y * 0.8));
         
-        console.log(`🤸‍♂️ Zambullida hacia ${direction > 0 ? 'derecha' : 'izquierda'} - X:${diveX.toFixed(2)} Y:${diveY.toFixed(2)}`);
+        console.log(`🤸‍♂️ Zambullida hacia ${direction} - X:${diveX.toFixed(2)} Y:${diveY.toFixed(2)}`);
         
-        // Zambullida SIMPLE con movimiento directo
-        gsap.to(this.model.position, {
-            x: this.model.position.x + diveX, // Desde posición actual
-            y: diveY,
-            duration: 0.4,
-            ease: 'power2.out'
-        });
+        // Intentar animación de zambullida primero
+        if (!this.playDiveAnimation(direction) && !this.playAnimation('dive')) {
+            // Si no hay animaciones, usar movimiento por código
+            gsap.to(this.model.position, {
+                x: this.model.position.x + diveX,
+                y: diveY,
+                duration: 0.4,
+                ease: 'power2.out'
+            });
+        }
         
         // SIN rotaciones complicadas - solo mantener neutral
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
@@ -526,17 +636,21 @@ export default class GoalkeeperAI {
     
     desperateAttempt(targetPoint) {
         this.state = 'DESPERATE';
-        const direction = targetPoint.x > 0 ? 1 : -1;
+        const direction = targetPoint.x > 0 ? 'right' : 'left';
+        const directionMultiplier = targetPoint.x > 0 ? 1 : -1;
         
-        console.log(`💔 Intento desesperado hacia ${direction > 0 ? 'derecha' : 'izquierda'}`);
+        console.log(`💔 Intento desesperado hacia ${direction}`);
         
-        // Movimiento desesperado SIMPLE
-        gsap.to(this.model.position, {
-            x: this.model.position.x + direction * 1.5, // Desde posición actual
-            y: this.initialPos.y + 0.3,
-            duration: 0.5,
-            ease: 'power2.out'
-        });
+        // Intentar animación desesperada primero
+        if (!this.playAnimation('desperate') && !this.playDiveAnimation(direction)) {
+            // Si no hay animaciones, usar movimiento por código
+            gsap.to(this.model.position, {
+                x: this.model.position.x + directionMultiplier * 1.5,
+                y: this.initialPos.y + 0.3,
+                duration: 0.5,
+                ease: 'power2.out'
+            });
+        }
         
         // SIN rotaciones - mantener neutral
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
@@ -544,23 +658,25 @@ export default class GoalkeeperAI {
     
     watchItGo(targetPoint) {
         this.state = 'WATCHING';
-        const direction = targetPoint.x > 0 ? 1 : -1;
+        const direction = targetPoint.x > 0 ? 'right' : 'left';
+        const directionMultiplier = targetPoint.x > 0 ? 1 : -1;
         
-        console.log(`👀 Solo mirando hacia ${direction > 0 ? 'derecha' : 'izquierda'}`);
+        console.log(`👀 Solo mirando hacia ${direction}`);
         
-        // Movimiento muy sutil de seguimiento
-        gsap.to(this.model.position, {
-            x: this.model.position.x + direction * 0.3, // Desde posición actual
-            y: this.initialPos.y - 0.05, // Ligero agachamiento
-            duration: 0.4,
-            ease: 'sine.out'
-        });
+        // Intentar animación de observación primero
+        if (!this.playAnimation('watch') && !this.playAnimation('disappointed')) {
+            // Si no hay animaciones, usar movimiento por código
+            gsap.to(this.model.position, {
+                x: this.model.position.x + directionMultiplier * 0.3,
+                y: this.initialPos.y - 0.05, // Ligero agachamiento
+                duration: 0.4,
+                ease: 'sine.out'
+            });
+        }
         
         // SIN rotaciones - mantener neutral
         gsap.set(this.model.rotation, { x: 0, y: 0, z: 0 });
     }
-    
-
     
     checkSave(ballPosition) {
         // Solo puede atajar si está en una acción activa
@@ -619,7 +735,7 @@ export default class GoalkeeperAI {
         
         const isSaved = Math.random() < saveChance;
         
-        console.log(`� ${isSaved ? 'ATAJADA' : 'GOL'} - Dist: ${distance.toFixed(1)}m, Estado: ${this.state}, Prob: ${(saveChance*100).toFixed(0)}%`);
+        console.log(`🥅 ${isSaved ? 'ATAJADA' : 'GOL'} - Dist: ${distance.toFixed(1)}m, Estado: ${this.state}, Prob: ${(saveChance*100).toFixed(0)}%`);
         
         return isSaved;
     }

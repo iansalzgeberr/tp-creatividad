@@ -9,7 +9,7 @@ import AudioManager from './Audio';
 import UIManager from './UI';
 import GoalkeeperAI from './GoalkeeperAI';
 import ShotModel from './ShotModel';
-import GestureManager from './GestureManager';
+import KickGestureManager from './KickGestureManager';
 import Stadium from './Stadium';
 
 export default class SceneManager {
@@ -28,7 +28,7 @@ export default class SceneManager {
         this.input = new InputManager();
         this.ui = new UIManager();
         this.audio = new AudioManager();
-        this.gesture = new GestureManager();
+        this.gesture = new KickGestureManager();
         this.stateMachine = new StateMachine(this);
         this.shotModel = new ShotModel();
 
@@ -41,6 +41,10 @@ export default class SceneManager {
         this.controls = new PointerLockControls(this.camera, document.body);
         this.goalkeeperAI = null;
         this.stadium = null;
+        
+        // Marcador de apuntado en el arco
+        this.aimMarker = null;
+        this.aimMarkerVisible = false;
         
         // Estado de control por gestos
         this.gestureControlActive = false;
@@ -77,20 +81,30 @@ export default class SceneManager {
         });
         
         this.gesture.on('pointing', (target) => {
+            console.log('🎯 EVENTO POINTING RECIBIDO:', target); // DEBUG
             if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
                 this.handleGestureAim(target);
+            } else {
+                console.log(`⚠️ Pointing ignorado - Activo: ${this.gestureControlActive}, Estado: ${this.stateMachine.currentState?.name}`);
             }
         });
         
         this.gesture.on('charge-start', () => {
+            console.log('⚡ EVENTO CHARGE-START RECIBIDO'); // DEBUG
             if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
                 this.input.startGestureCharge();
+            } else {
+                console.log(`⚠️ Charge ignorado - Activo: ${this.gestureControlActive}, Estado: ${this.stateMachine.currentState?.name}`);
             }
         });
         
         this.gesture.on('shoot', () => {
+            console.log('⚽ EVENTO SHOOT RECIBIDO'); // DEBUG
             if (this.gestureControlActive && this.stateMachine.currentState?.name === 'AIMING') {
+                this.hideAimMarker(); // Ocultar marcador al disparar
                 this.input.gestureShoot();
+            } else {
+                console.log(`⚠️ Shoot ignorado - Activo: ${this.gestureControlActive}, Estado: ${this.stateMachine.currentState?.name}`);
             }
         });
         
@@ -104,64 +118,73 @@ export default class SceneManager {
 
     handleGestureAim(target) {
         // target es {x: 0-1, y: 0-1} desde la cámara
-        // Convertir a rotación de cámara
+        // Mostrar el marcador si no está visible
+        if (this.aimMarker && !this.aimMarkerVisible) {
+            this.aimMarker.visible = true;
+            this.aimMarkerVisible = true;
+            console.log('🎯 Marcador de apuntado VISIBLE');
+        }
         
-        // Invertir X porque la imagen está espejada
-        const normalizedX = 1 - target.x;
-        const normalizedY = target.y;
+        // Convertir a posición en el arco
+        // X: target.x va de 0 (izquierda) a 1 (derecha)
+        // Y: target.y va de 0 (arriba) a 1 (abajo) - necesitamos invertir
         
-        // Mapear a ángulos de cámara
-        // X: -30° a +30° (horizontal)
-        // Y: -20° a +20° (vertical)
-        const targetYaw = (normalizedX - 0.5) * Math.PI / 3; // ±30°
-        const targetPitch = -(normalizedY - 0.5) * Math.PI / 4.5; // ±20°
+        // Dimensiones del arco (aproximadas)
+        const goalWidth = 7.32;  // Ancho estándar de arco de fútbol
+        const goalHeight = 2.44; // Alto estándar
+        const goalZ = -14.95;    // Posición Z del arco (justo delante)
         
-        // Aplicar rotación suavemente
+        // Mapear target a posición 3D en el arco
+        // Invertir X porque la cámara está espejada
+        const aimX = (1 - target.x - 0.5) * goalWidth * 0.9; // 0.9 para dejar margen
+        const aimY = (1 - target.y) * goalHeight * 0.9 + 0.3; // 0.3 offset desde el suelo
+        
+        // Actualizar posición del marcador con animación suave
+        if (this.aimMarker) {
+            gsap.to(this.aimMarker.position, {
+                x: aimX,
+                y: aimY,
+                z: goalZ,
+                duration: 0.15,
+                ease: 'power2.out'
+            });
+        }
+        
+        // También rotar ligeramente la cámara para feedback visual
+        const targetYaw = (target.x - 0.5) * Math.PI / 6; // ±30° reducido a ±15°
+        const targetPitch = -(target.y - 0.5) * Math.PI / 9; // ±20° reducido a ±10°
+        
         gsap.to(this.camera.rotation, {
             y: targetYaw,
             x: targetPitch,
             duration: 0.2,
             ease: 'power2.out'
         });
+        
+        // Debug: mostrar en consola cada 30 frames
+        if (!this._aimDebugCounter) this._aimDebugCounter = 0;
+        this._aimDebugCounter++;
+        if (this._aimDebugCounter % 30 === 0) {
+            console.log(`🎯 Apuntado: X=${aimX.toFixed(2)}m, Y=${aimY.toFixed(2)}m (Pie: ${target.x.toFixed(2)}, ${target.y.toFixed(2)})`);
+        }
     }
 
     activateGesturesOnStart() {
-        console.log('🖐️ Auto-activating gesture control on game start...');
+        console.log('🦶 Auto-activando control con pie (PERMANENTE)...');
         this.gesture.init().then(success => {
             if (success) {
                 this.gestureControlActive = true;
                 this.gesture.enable();
                 this.input.enableGestureMode();
-                this.ui.updateGestureStatus('🖐️ Control por gestos ACTIVADO');
-                console.log('✅ Gesture control auto-activated');
+                console.log('✅ Control con pie activado automáticamente');
             } else {
-                console.log('❌ Gesture control auto-activation failed, using keyboard');
-                this.ui.updateGestureStatus('⌨️ Control por teclado (gestos fallaron)');
+                console.log('❌ Control con pie falló, usando teclado de respaldo');
             }
         });
     }
 
-    toggleGestureControl() {
-        if (!this.gestureControlActive) {
-            // Activar control por gestos
-            this.gesture.init().then(success => {
-                if (success) {
-                    this.gestureControlActive = true;
-                    this.gesture.enable();
-                    this.input.enableGestureMode();
-                    this.ui.updateGestureStatus('🖐️ Control por gestos ACTIVADO');
-                    console.log('🖐️ Gesture control activated');
-                }
-            });
-        } else {
-            // Desactivar control por gestos
-            this.gestureControlActive = false;
-            this.gesture.disable();
-            this.input.disableGestureMode();
-            this.ui.updateGestureStatus('⌨️ Control por teclado');
-            console.log('⌨️ Gesture control deactivated');
-        }
-    }
+    // Método eliminado - control con pie siempre activo
+    // toggleGestureControl() { ... }
 
     setupScene() {
         // Luz ambiente más intensa para mejor visibilidad del estadio
@@ -292,11 +315,34 @@ export default class SceneManager {
         });
         this.scene.add(this.ball);
         
-        // Arquero - ALTA CALIDAD
+        // Arquero ElShenawy - ALTA CALIDAD
         const keeperModel = this.assets.get('arquero');
         this.goalkeeper = keeperModel.scene;
         this.goalkeeper.position.set(0, 0, -14.8);
         this.goalkeeper.scale.set(1.5, 1.5, 1.5);
+        
+        // Verificar si el modelo tiene animaciones
+        this.goalkeeperAnimations = keeperModel.animations || [];
+        this.goalkeeperMixer = null;
+        
+        if (this.goalkeeperAnimations.length > 0) {
+            console.log(`🎭 Arquero ElShenawy tiene ${this.goalkeeperAnimations.length} animaciones:`, 
+                this.goalkeeperAnimations.map(anim => anim.name));
+            
+            // Crear mixer para las animaciones
+            this.goalkeeperMixer = new THREE.AnimationMixer(this.goalkeeper);
+            
+            // Preparar clips de animación
+            this.goalkeeperClips = {};
+            this.goalkeeperAnimations.forEach(animation => {
+                const action = this.goalkeeperMixer.clipAction(animation);
+                this.goalkeeperClips[animation.name] = action;
+                console.log(`✅ Animación preparada: ${animation.name} (duración: ${animation.duration.toFixed(2)}s)`);
+            });
+        } else {
+            console.log('ℹ️ El arquero ElShenawy no tiene animaciones incluidas');
+        }
+        
         // Asegurar que el arquero tenga la mejor calidad visual
         this.goalkeeper.traverse(child => {
             if (child.isMesh) {
@@ -309,7 +355,10 @@ export default class SceneManager {
             }
         });
         this.scene.add(this.goalkeeper);
-        this.goalkeeperAI = new GoalkeeperAI(this.goalkeeper);
+        this.goalkeeperAI = new GoalkeeperAI(this.goalkeeper, this.goalkeeperMixer, this.goalkeeperClips);
+
+        // Crear marcador de apuntado visual en el arco
+        this.createAimMarker();
 
         this.player.add(this.camera);
         this.scene.add(this.player);
@@ -317,10 +366,88 @@ export default class SceneManager {
         console.log('✅ Elementos principales del juego construidos con máxima calidad');
     }
 
+    createAimMarker() {
+        // Crear un marcador visual brillante para mostrar dónde se apunta
+        const markerGroup = new THREE.Group();
+        
+        // Círculo exterior brillante
+        const outerRing = new THREE.Mesh(
+            new THREE.RingGeometry(0.3, 0.35, 32),
+            new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            })
+        );
+        
+        // Círculo interior semi-transparente
+        const innerCircle = new THREE.Mesh(
+            new THREE.CircleGeometry(0.3, 32),
+            new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            })
+        );
+        
+        // Cruz en el centro
+        const crossGeometry = new THREE.BufferGeometry();
+        const crossVertices = new Float32Array([
+            -0.15, 0, 0,  0.15, 0, 0,  // Línea horizontal
+            0, -0.15, 0,  0, 0.15, 0   // Línea vertical
+        ]);
+        crossGeometry.setAttribute('position', new THREE.BufferAttribute(crossVertices, 3));
+        
+        const crossLines = new THREE.LineSegments(
+            crossGeometry,
+            new THREE.LineBasicMaterial({ 
+                color: 0xffff00,
+                linewidth: 2
+            })
+        );
+        
+        markerGroup.add(outerRing);
+        markerGroup.add(innerCircle);
+        markerGroup.add(crossLines);
+        
+        // Posicionar en el centro del arco inicialmente
+        markerGroup.position.set(0, 1.5, -14.95); // Justo delante del arco
+        markerGroup.visible = false;
+        
+        this.scene.add(markerGroup);
+        this.aimMarker = markerGroup;
+        
+        // Animación de pulsación
+        gsap.to(outerRing.scale, {
+            x: 1.2,
+            y: 1.2,
+            z: 1.2,
+            duration: 0.8,
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: -1
+        });
+        
+        console.log('🎯 Marcador de apuntado creado');
+    }
+
+    hideAimMarker() {
+        if (this.aimMarker && this.aimMarkerVisible) {
+            this.aimMarker.visible = false;
+            this.aimMarkerVisible = false;
+            console.log('🎯 Marcador de apuntado OCULTO');
+        }
+    }
+
     resetScene() {
         // Posición inicial más alejada para mostrar mejor el movimiento automático
         this.player.position.set(0, 1.7, 10);
         this.camera.rotation.set(0, 0, 0);
+        
+        // Ocultar marcador de apuntado
+        this.hideAimMarker();
         
         if (!this.player.children.includes(this.camera)) this.player.add(this.camera);
         this.toPlayerView();
@@ -365,10 +492,6 @@ export default class SceneManager {
             this.resetScene();
             this.controls.lock();
         });
-        
-        this.ui.on('toggle-gesture', () => {
-            this.toggleGestureControl();
-        });
 
         this.input.on('kick', (power) => {
             if(this.stateMachine.currentState && this.stateMachine.currentState.name === 'AIMING') {
@@ -404,6 +527,11 @@ export default class SceneManager {
     update(deltaTime) {
         if(this.stateMachine.currentState) {
             this.stateMachine.currentState.update(deltaTime);
+        }
+        
+        // Actualizar animaciones del arquero ElShenawy si existen
+        if (this.goalkeeperMixer) {
+            this.goalkeeperMixer.update(deltaTime);
         }
         
         if (this.stateMachine.currentState && (this.stateMachine.currentState.name === 'KICK' || this.stateMachine.currentState.name === 'OUTCOME')) {

@@ -23,7 +23,7 @@ export default class Assets extends EventEmitter {
             { name: 'arco', path: '/models/arco.glb' },
             { name: 'pelota', path: '/models/pelota.glb' },
             { name: 'jugador', path: '/models/jugador.glb' },
-            { name: 'arquero', path: '/models/arquero.glb' },
+            { name: 'arquero', path: '/models/elshenawy.glb' },
             
         ];
 
