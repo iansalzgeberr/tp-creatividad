@@ -91,6 +91,11 @@ export default class InputManager extends EventEmitter {
                     this.emit('test-audio');
                 }
                 break;
+            case 'KeyU':
+                if (isPressed) {
+                    this.emit('play-montiel');
+                }
+                break;
             case 'KeyG': // Toggle gesture mode
                 if (isPressed) {
                     this.emit('toggle-gesture');

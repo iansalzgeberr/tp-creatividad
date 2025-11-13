@@ -464,6 +464,11 @@ export default class SceneManager {
             }, 500);
         });
 
+        this.input.on('play-montiel', () => {
+            console.log('🎙️ Reproduciendo audio de Montiel (tecla U)...');
+            this.audio.playMontiel();
+        });
+
         // LISTENERS PARA KICK GESTURE MANAGER
         this.gesture.on('pointing', (target) => {
             console.log('🎯 EVENTO POINTING DEL GESTO:', target);
